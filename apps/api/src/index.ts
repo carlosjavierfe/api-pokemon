@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Difficulty, GameState, PokemonFacts } from "@api-pokemon/shared";
-import { buildHint, calculateRoundPoints, nextDifficulty } from "@api-pokemon/shared";
+import { buildHint, calculateRoundScore, nextDifficulty } from "@api-pokemon/shared";
 import { openApiDocument, swaggerHtml } from "./openapi";
 
 type Bindings = {
@@ -109,12 +109,13 @@ app.post("/games/:id/guess", async (context) => {
   const elapsedSeconds = (Date.now() - game.startedAt) / 1000;
   const timedOut = elapsedSeconds >= ROUND_TIME_LIMIT_SECONDS;
   const correct = !timedOut && answer === game.pokemon.name.toLowerCase();
-  const points = calculateRoundPoints({
+  const scoreBreakdown = calculateRoundScore({
     correct,
     elapsedSeconds,
     hintsUsed: game.hints.length,
     streak: game.streak,
   });
+  const points = scoreBreakdown.totalPoints;
   const resolvedPokemon = game.pokemon;
   game.streak = correct ? game.streak + 1 : 0;
   game.score += points;
@@ -138,6 +139,7 @@ app.post("/games/:id/guess", async (context) => {
     round: game.round,
     finished: completed,
     timedOut,
+    scoreBreakdown,
     pokemon: { id: resolvedPokemon.id, name: resolvedPokemon.name, imageUrl: pokemonImageUrl(resolvedPokemon.id) },
     nextRound: completed ? null : { round: game.round, startedAt: game.startedAt, imageUrl: pokemonImageUrl(game.pokemon.id) },
   });

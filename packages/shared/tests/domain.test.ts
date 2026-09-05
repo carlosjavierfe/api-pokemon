@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHint, calculateRoundPoints, isSafeHint, nextDifficulty } from "../src";
+import { buildHint, calculateRoundPoints, calculateRoundScore, isSafeHint, nextDifficulty } from "../src";
 import type { PokemonFacts } from "../src";
 
 const pokemon: PokemonFacts = {
@@ -33,6 +33,15 @@ describe("hint domain", () => {
 describe("scoring domain", () => {
   it("awards points for a fast correct answer", () => {
     expect(calculateRoundPoints({ correct: true, elapsedSeconds: 4, hintsUsed: 0, streak: 0 })).toBe(128);
+  });
+
+  it("returns the score breakdown including hint penalty", () => {
+    expect(calculateRoundScore({ correct: true, elapsedSeconds: 4, hintsUsed: 2, streak: 0 })).toMatchObject({
+      basePoints: 100,
+      speedBonus: 28,
+      hintPenalty: 30,
+      totalPoints: 98,
+    });
   });
 
   it("never awards points for a wrong answer", () => {

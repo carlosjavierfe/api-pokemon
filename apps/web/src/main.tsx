@@ -24,6 +24,7 @@ type Result = {
   round: number;
   finished: boolean;
   timedOut: boolean;
+  scoreBreakdown: { basePoints: number; speedBonus: number; hintPenalty: number; streakMultiplier: number; totalPoints: number };
   pokemon: { id: number; name: string; imageUrl: string };
   nextRound: { round: number; startedAt: number; imageUrl: string } | null;
 };
@@ -120,7 +121,7 @@ function App() {
           </form> : <>
             <div className={`pokemon-frame ${result ? "revealed" : ""}`}><div className="scan-line" /><img src={result?.pokemon.imageUrl ?? game.imageUrl} alt={result ? result.pokemon.name : "Pokemon oculto"} />{!result && <span className="unknown">?</span>}</div>
             <div className="round-meta"><span>Ronda {game.round} / 10</span><span className={`timer ${secondsLeft <= 5 ? "urgent" : ""}`}>00:{String(secondsLeft).padStart(2, "0")}</span><span className={`difficulty ${game.difficulty}`}>{game.difficulty}</span></div>
-            {result ? <div className={`result ${result.correct ? "success" : "failure"}`}><p className="eyebrow">{result.correct ? "Acierto confirmado" : "Ronda resuelta"}</p><h2>Era {result.pokemon.name}</h2><strong>{result.correct ? `+${result.points} puntos` : "0 puntos"}</strong>{result.finished ? <button type="button" onClick={resetGame}>Nueva partida</button> : <button type="button" onClick={() => { setResult(null); setAnswer(""); }}>Siguiente ronda</button>}</div> : <form className="guess-form" onSubmit={submitGuess}><label htmlFor="answer">¿Cuál es tu respuesta?</label><div className="input-row"><input id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Escribe el nombre..." autoComplete="off" required /><button type="submit" disabled={loading}>{loading ? "..." : "Adivinar"}</button></div></form>}
+            {result ? <div className={`result ${result.correct ? "success" : "failure"}`}><p className="eyebrow">{result.correct ? "Acierto confirmado" : result.timedOut ? "Tiempo agotado" : "Ronda resuelta"}</p><h2>Era {result.pokemon.name}</h2><div className="score-breakdown"><span>Base <b>{result.scoreBreakdown.basePoints}</b></span><span>Velocidad <b>+{result.scoreBreakdown.speedBonus}</b></span><span>Pistas <b>-{result.scoreBreakdown.hintPenalty}</b></span><span>Multiplicador <b>x{result.scoreBreakdown.streakMultiplier.toFixed(1)}</b></span><strong>Total ronda <b>{result.scoreBreakdown.totalPoints}</b></strong></div><p className="total-score">Total partida: <b>{result.score}</b> pts</p>{result.finished ? <button type="button" onClick={resetGame}>Nueva partida</button> : <button type="button" onClick={() => { setResult(null); setAnswer(""); }}>Siguiente ronda</button>}</div> : <form className="guess-form" onSubmit={submitGuess}><label htmlFor="answer">¿Cuál es tu respuesta?</label><div className="input-row"><input id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Escribe el nombre..." autoComplete="off" required /><button type="submit" disabled={loading}>{loading ? "..." : "Adivinar"}</button></div></form>}
           </>}
           {error && <p className="error-message" role="alert">{error}</p>}
         </section>

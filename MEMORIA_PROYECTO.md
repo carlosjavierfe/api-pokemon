@@ -23,6 +23,7 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - Imagen de la siguiente ronda sincronizada mediante `nextRound.imageUrl`; se evita reutilizar la silueta anterior.
 - Pool ampliado a los 151 Pokemon originales con selección aleatoria sin repetición inmediata.
 - Límite de 30 segundos por ronda validado en backend y mostrado con cuenta atrás en frontend.
+- Resultado de ronda muestra base, bonus de velocidad, penalización por pistas, multiplicador y total acumulado.
 
 ## Decisiones confirmadas
 

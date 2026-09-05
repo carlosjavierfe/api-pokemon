@@ -32,4 +32,5 @@ export type GuessResult = {
 };
 
 export { buildHint, isSafeHint } from "./domain/hints";
-export { calculateRoundPoints, nextDifficulty } from "./domain/scoring";
+export { calculateRoundPoints, calculateRoundScore, nextDifficulty } from "./domain/scoring";
+export type { RoundScoreBreakdown } from "./domain/scoring";

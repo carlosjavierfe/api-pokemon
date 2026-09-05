@@ -89,10 +89,11 @@ describe("game API", () => {
       body: JSON.stringify({ answer: "pikachu" }),
     }, env);
     expect(guessResponse.status).toBe(200);
-    const guess = await guessResponse.json() as { finished: boolean; round: number; pokemon: { name: string }; nextRound: { round: number; imageUrl: string } | null };
+    const guess = await guessResponse.json() as { finished: boolean; round: number; pokemon: { name: string }; nextRound: { round: number; imageUrl: string } | null; scoreBreakdown: { hintPenalty: number; totalPoints: number } };
     expect(guess.finished).toBe(false);
     expect(guess.round).toBe(2);
     expect(guess.pokemon.name).toBe("pikachu");
+    expect(guess.scoreBreakdown).toMatchObject({ hintPenalty: 15, totalPoints: expect.any(Number) });
     expect(guess.nextRound).toMatchObject({ round: 2, imageUrl: expect.stringContaining("/2.png") });
 
     const nextGameResponse = await app.request(`/api/games/${game.id}`, {}, env);
