@@ -7,12 +7,26 @@ Se utilizó GitHub Copilot dentro de Visual Studio Code como agente de desarroll
 ## Flujo de trabajo
 
 1. Leer `MEMORIA_PROYECTO.md`.
-2. Dividir el trabajo en una tarea pequeña.
-3. Definir archivos afectados y criterio de aceptación.
+2. El asistente principal enruta la solicitud al agente `orchestrator`.
+3. `orchestrator` divide el trabajo y delega cada parte al agente especialista.
 4. Pedir autorización antes de editar, ejecutar, instalar, usar Git o desplegar.
-5. Implementar el cambio.
+5. El agente especialista implementa su parte y entrega resultado verificable.
 6. Ejecutar typecheck, pruebas, build o smoke test.
-7. Revisar el resultado humano y crear un commit incremental.
+7. Registrar una evidencia breve de la delegación y crear un commit incremental.
+
+## Política permanente de delegación
+
+Cada delegación se registra en este mismo archivo con 3 a 8 líneas:
+
+```text
+### YYYY-MM-DD — Orchestrator -> agente
+Tarea: resumen de la tarea.
+Resultado: archivos o comportamiento entregado.
+Validación: comando o prueba ejecutada.
+Estado: aceptado / requiere corrección.
+```
+
+No se copian conversaciones completas, prompts largos ni razonamientos internos. Se conserva únicamente evidencia verificable.
 
 ## Agentes configurados
 
@@ -23,6 +37,16 @@ Se utilizó GitHub Copilot dentro de Visual Studio Code como agente de desarroll
 - `qa-release`: pruebas, seguridad y despliegue.
 
 Configuración: `.github/agents/` y `.github/skills/`.
+
+## Registro resumido de delegaciones
+
+### 2026-09-05 — Orchestrator -> backend
+Tarea: analizar pool Pokemon, selección sin repetición y límite temporal por ronda.
+Resultado: recomendación de cambio y casos de prueba para backend.
+Validación: revisión de `MEMORIA_PROYECTO.md` y archivos de API.
+Estado: aceptado como guía de implementación.
+
+Las siguientes tareas se registrarán aquí únicamente cuando el orquestador las delegue y exista una validación comprobable.
 
 ## Prompts y resultados relevantes
 
