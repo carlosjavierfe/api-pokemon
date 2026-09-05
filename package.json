@@ -1,0 +1,22 @@
+{
+  "name": "api-pokemon",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Juego web de adivinanza Pokemon con PokéAPI y Cloudflare.",
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace apps/web run dev",
+    "build": "npm --workspace apps/web run build",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspaces",
+    "dev:api": "npm --workspace apps/api run dev",
+    "deploy:api": "npm --workspace apps/api run deploy"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

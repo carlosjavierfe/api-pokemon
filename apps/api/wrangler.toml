@@ -1,0 +1,6 @@
+name = "api-pokemon-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-05"
+
+[vars]
+ENVIRONMENT = "development"
