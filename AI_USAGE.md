@@ -1,0 +1,71 @@
+# Uso de agentes y GitHub Copilot
+
+## Herramienta
+
+Se utilizó GitHub Copilot dentro de Visual Studio Code como agente de desarrollo y revisión. Copilot no se integra como proveedor de pistas en la aplicación.
+
+## Flujo de trabajo
+
+1. Leer `MEMORIA_PROYECTO.md`.
+2. Dividir el trabajo en una tarea pequeña.
+3. Definir archivos afectados y criterio de aceptación.
+4. Pedir autorización antes de editar, ejecutar, instalar, usar Git o desplegar.
+5. Implementar el cambio.
+6. Ejecutar typecheck, pruebas, build o smoke test.
+7. Revisar el resultado humano y crear un commit incremental.
+
+## Agentes configurados
+
+- `orchestrator`: coordina alcance, tareas y validación.
+- `architecture`: contratos, modelo y decisiones.
+- `backend`: Worker, D1, PokéAPI y reglas de servidor.
+- `frontend`: React, estados y responsive.
+- `qa-release`: pruebas, seguridad y despliegue.
+
+Configuración: `.github/agents/` y `.github/skills/`.
+
+## Prompts y resultados relevantes
+
+### Scaffolding
+
+Solicitud: crear un monorepo con React/Vite, Worker Cloudflare, paquete compartido y migraciones D1.
+
+Resultado: estructura inicial, configuración TypeScript, Vite, Wrangler y migración SQL.
+
+Validación: `npm run typecheck` y `npm run build` correctos.
+
+### Dominio
+
+Solicitud: implementar pistas deterministas, validación anti-spoiler, puntuación, racha y dificultad con pruebas unitarias.
+
+Resultado: dominio en `packages/shared` y 6 pruebas unitarias.
+
+Validación: pruebas Vitest y typecheck correctos.
+
+### Backend
+
+Solicitud: implementar endpoints de partida, pistas, respuesta y ranking sin exponer el Pokemon correcto.
+
+Resultado: API Hono, adaptador PokéAPI, fallback de memoria y binding D1 preparado.
+
+Validación: pruebas HTTP, typecheck y build correctos.
+
+### Frontend
+
+Solicitud: crear una interfaz responsive tipo Pokédex que consuma únicamente la API propia.
+
+Resultado: inicio de partida, silueta, pistas, respuesta, resultado, puntuación y ranking.
+
+Validación: build y typecheck correctos.
+
+### CORS y Swagger
+
+Solicitud: añadir CORS controlado, contrato OpenAPI y Swagger UI sin dependencia pesada.
+
+Resultado: `WEB_ORIGIN`, preflight, `/api/openapi.json` y `/api/docs`.
+
+Validación: pruebas de CORS, OpenAPI, typecheck y build correctos.
+
+## Criterio humano
+
+Se conservaron cambios pequeños y se descartó integrar un proveedor LLM en el MVP por coste, latencia y dependencia externa. También se dejó fuera autenticación y modo infinito para priorizar una entrega funcional y defendible.
