@@ -19,6 +19,11 @@ describe("game API", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:5173");
   });
 
+  it("does not allow an unknown web origin", async () => {
+    const response = await app.request("/api/health", { headers: { Origin: "https://unknown.example" } }, env);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
   it("handles CORS preflight", async () => {
     const response = await app.request("/api/games", { method: "OPTIONS", headers: { Origin: "http://localhost:5173" } }, env);
     expect(response.status).toBe(204);
@@ -48,5 +53,23 @@ describe("game API", () => {
   it("rejects an invalid player name", async () => {
     const response = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "" }) }, env);
     expect(response.status).toBe(400);
+  });
+
+  it("runs the API game flow from creation to ranking", async () => {
+    const gameResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Misty" }) }, env);
+    const game = await gameResponse.json() as { id: string };
+
+    const hintResponse = await app.request(`/api/games/${game.id}/hints`, { method: "POST" }, env);
+    expect(hintResponse.status).toBe(200);
+
+    const guessResponse = await app.request(`/api/games/${game.id}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ answer: "pikachu" }),
+    }, env);
+    expect(guessResponse.status).toBe(200);
+
+    const scoresResponse = await app.request("/api/scores", {}, env);
+    const scores = await scoresResponse.json() as { scores: Array<{ playerName: string }> };
+    expect(scores.scores.some((score) => score.playerName === "Misty")).toBe(true);
   });
 });

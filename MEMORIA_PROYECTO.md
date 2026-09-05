@@ -18,6 +18,7 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - Proxy Vite configurado para `/api` local.
 - CORS controlado por `WEB_ORIGIN` y localhost.
 - OpenAPI disponible en `/api/openapi.json`; Swagger UI en `/api/docs`.
+- Pruebas de integración API cubren CORS autorizado/no autorizado y el flujo partida -> pista -> respuesta -> ranking.
 
 ## Decisiones confirmadas
 
