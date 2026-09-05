@@ -59,10 +59,12 @@ POST /api/games
 GET  /api/games/:id
 POST /api/games/:id/hints
 POST /api/games/:id/guess
-GET  /api/scores?limit=20
+GET  /api/scores?mode=standard
 GET  /api/openapi.json
 GET  /api/docs
 ```
+
+`POST /api/games` recibe `{ playerName, mode? }`, con `mode` `standard` (10 rondas, por defecto) o `streak` (termina en el primer fallo o timeout). Las respuestas de partida incluyen el modo, estado, ronda, puntuación, racha, dificultad, pistas, opciones, imagen y timestamp. Las pistas devuelven `{ hint, hintsUsed }`, las respuestas devuelven el resultado de ronda con `scoreBreakdown`, Pokemon resuelto y `nextRound`, y el ranking devuelve `{ scores }` únicamente para partidas `standard` finalizadas en 10 rondas. Los errores tienen forma `{ error }`; los fallos controlados de PokéAPI o D1 responden 503.
 
 El frontend no consulta PokéAPI directamente. La respuesta correcta y el cálculo del puntaje permanecen en el Worker.
 

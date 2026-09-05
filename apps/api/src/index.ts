@@ -21,11 +21,19 @@ type Game = GameState & {
 };
 
 const ROUND_TIME_LIMIT_SECONDS = 30;
+const POKEAPI_TIMEOUT_MS = 2_500;
 const pokemonPool = Array.from({ length: 151 }, (_, index) => index + 1);
 
 const games = new Map<string, Game>();
 
 export const app = new Hono<{ Bindings: Bindings }>().basePath("/api");
+
+app.onError((error, context) => {
+  if (error instanceof ControlledServiceError) {
+    return context.json({ error: error.publicMessage }, error.status);
+  }
+  return context.json({ error: "Internal server error" }, 500);
+});
 
 app.use("*", async (context, next) => {
   const origin = context.req.header("Origin");
@@ -159,13 +167,18 @@ app.get("/scores", async (context) => {
   }
 
   if (context.env.DB) {
-    const result = await context.env.DB.prepare(
-      `SELECT scores.player_name AS playerName, scores.score, scores.rounds
-       FROM scores
-       INNER JOIN games ON games.id = scores.game_id
-       WHERE games.mode = 'standard' AND games.status = 'finished' AND scores.rounds = 10
-       ORDER BY scores.score DESC LIMIT 20`,
-    ).all<{ playerName: string; score: number; rounds: number }>();
+    let result: D1Result<{ playerName: string; score: number; rounds: number }>;
+    try {
+      result = await context.env.DB.prepare(
+        `SELECT scores.player_name AS playerName, scores.score, scores.rounds
+         FROM scores
+         INNER JOIN games ON games.id = scores.game_id
+         WHERE games.mode = 'standard' AND games.status = 'finished' AND scores.rounds = 10
+         ORDER BY scores.score DESC LIMIT 20`,
+      ).all<{ playerName: string; score: number; rounds: number }>();
+    } catch {
+      throw new ControlledServiceError("Storage unavailable", 503);
+    }
     return context.json({ scores: result.results });
   }
 
@@ -199,61 +212,75 @@ async function findGame(database: D1Database | undefined, id: string): Promise<G
   const memoryGame = games.get(id);
   if (memoryGame || !database) return memoryGame;
 
-  const row = await database.prepare("SELECT * FROM games WHERE id = ?1").bind(id).first<DatabaseGame>();
+  let row: DatabaseGame | null;
+  try {
+    row = await database.prepare("SELECT * FROM games WHERE id = ?1").bind(id).first<DatabaseGame>();
+  } catch {
+    throw new ControlledServiceError("Storage unavailable", 503);
+  }
   if (!row) return undefined;
 
-  const game: Game = {
-    id: row.id,
-    playerName: row.player_name,
-    mode: row.mode as Game["mode"],
-    pokemon: JSON.parse(row.pokemon_json) as PokemonFacts,
-    hints: JSON.parse(row.hints_json) as string[],
-    choices: JSON.parse(row.choices_json) as string[],
-    difficulty: row.difficulty as Difficulty,
-    round: row.round,
-    score: row.score,
-    streak: row.streak,
-    startedAt: row.started_at,
-    status: row.status as Game["status"],
-  };
+  let game: Game;
+  try {
+    game = {
+      id: row.id,
+      playerName: row.player_name,
+      mode: row.mode as Game["mode"],
+      pokemon: JSON.parse(row.pokemon_json) as PokemonFacts,
+      hints: JSON.parse(row.hints_json) as string[],
+      choices: JSON.parse(row.choices_json) as string[],
+      difficulty: row.difficulty as Difficulty,
+      round: row.round,
+      score: row.score,
+      streak: row.streak,
+      startedAt: row.started_at,
+      status: row.status as Game["status"],
+    };
+  } catch {
+    throw new ControlledServiceError("Storage unavailable", 503);
+  }
   games.set(id, game);
   return game;
 }
 
 async function saveGame(database: D1Database, game: Game, saveScore = false): Promise<void> {
-  await database.prepare(
-    `INSERT INTO games
-      (id, status, difficulty, round_count, score, streak, player_name, pokemon_json,
-      hints_json, started_at, round, created_at, finished_at, mode, choices_json)
-      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
-     ON CONFLICT(id) DO UPDATE SET
-       status = excluded.status, difficulty = excluded.difficulty,
-       round_count = excluded.round_count, score = excluded.score,
-       streak = excluded.streak, hints_json = excluded.hints_json,
-       round = excluded.round, finished_at = excluded.finished_at,
-       mode = excluded.mode, choices_json = excluded.choices_json`,
-  ).bind(
-    game.id,
-    game.status,
-    game.difficulty,
-    game.round,
-    game.score,
-    game.streak,
-    game.playerName,
-    JSON.stringify(game.pokemon),
-    JSON.stringify(game.hints),
-    game.startedAt,
-    game.round,
-    new Date(game.startedAt).toISOString(),
-    game.status === "finished" ? new Date().toISOString() : null,
-    game.mode,
-    JSON.stringify(game.choices),
-  ).run();
-
-  if (saveScore) {
+  try {
     await database.prepare(
-      "INSERT OR REPLACE INTO scores (id, game_id, player_name, score, rounds, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-    ).bind(game.id, game.id, game.playerName, game.score, game.round, new Date().toISOString()).run();
+      `INSERT INTO games
+        (id, status, difficulty, round_count, score, streak, player_name, pokemon_json,
+        hints_json, started_at, round, created_at, finished_at, mode, choices_json)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
+       ON CONFLICT(id) DO UPDATE SET
+         status = excluded.status, difficulty = excluded.difficulty,
+         round_count = excluded.round_count, score = excluded.score,
+         streak = excluded.streak, hints_json = excluded.hints_json,
+         round = excluded.round, finished_at = excluded.finished_at,
+         mode = excluded.mode, choices_json = excluded.choices_json`,
+    ).bind(
+      game.id,
+      game.status,
+      game.difficulty,
+      game.round,
+      game.score,
+      game.streak,
+      game.playerName,
+      JSON.stringify(game.pokemon),
+      JSON.stringify(game.hints),
+      game.startedAt,
+      game.round,
+      new Date(game.startedAt).toISOString(),
+      game.status === "finished" ? new Date().toISOString() : null,
+      game.mode,
+      JSON.stringify(game.choices),
+    ).run();
+
+    if (saveScore) {
+      await database.prepare(
+        "INSERT OR REPLACE INTO scores (id, game_id, player_name, score, rounds, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+      ).bind(game.id, game.id, game.playerName, game.score, game.round, new Date().toISOString()).run();
+    }
+  } catch {
+    throw new ControlledServiceError("Storage unavailable", 503);
   }
 }
 
@@ -286,27 +313,57 @@ function randomPokemonId(): number {
 }
 
 async function getPokemon(id: number): Promise<PokemonFacts> {
-  const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-  if (!response.ok) throw new Error("Unable to load Pokemon");
-  const data = await response.json() as {
-    id: number;
-    name: string;
-    types: Array<{ type: { name: string } }>;
-    abilities: Array<{ ability: { name: string } }>;
-    height: number;
-    weight: number;
-    base_experience: number;
-  };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), POKEAPI_TIMEOUT_MS);
+  try {
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, { signal: controller.signal });
+    if (!response.ok) return fallbackPokemon(id);
+    const data = await response.json() as unknown;
+    return parsePokemonPayload(data) ?? fallbackPokemon(id);
+  } catch {
+    return fallbackPokemon(id);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function parsePokemonPayload(value: unknown): PokemonFacts | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const data = value as Record<string, unknown>;
+  if (typeof data.id !== "number" || typeof data.name !== "string"
+    || !Array.isArray(data.types) || !Array.isArray(data.abilities)
+    || typeof data.height !== "number" || typeof data.weight !== "number"
+    || typeof data.base_experience !== "number") return undefined;
+
+  const types = data.types.map((entry) => (entry as { type?: { name?: unknown } }).type?.name);
+  const abilities = data.abilities.map((entry) => (entry as { ability?: { name?: unknown } }).ability?.name);
+  if (!types.every((type): type is string => typeof type === "string")
+    || !abilities.every((ability): ability is string => typeof ability === "string")) return undefined;
 
   return {
     id: data.id,
     name: data.name,
-    types: data.types.map((entry) => entry.type.name),
-    abilities: data.abilities.map((entry) => entry.ability.name),
+    types,
+    abilities,
     height: data.height,
     weight: data.weight,
     baseExperience: data.base_experience,
   };
+}
+
+function fallbackPokemon(id: number): PokemonFacts {
+  const fallback = {
+    1: { name: "bulbasaur", type: "grass", ability: "overgrow" },
+    2: { name: "ivysaur", type: "grass", ability: "overgrow" },
+  }[id as 1 | 2];
+  if (!fallback) throw new ControlledServiceError("Pokemon data unavailable", 503);
+  return { id, name: fallback.name, types: [fallback.type], abilities: [fallback.ability], height: 7, weight: 69, baseExperience: 64 };
+}
+
+class ControlledServiceError extends Error {
+  constructor(public readonly publicMessage: string, public readonly status: 500 | 503) {
+    super(publicMessage);
+  }
 }
 
 async function buildChoices(correctPokemon: PokemonFacts): Promise<string[]> {

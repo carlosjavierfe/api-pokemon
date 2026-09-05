@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
-    "test": "node -e \"console.log('web tests pending')\""
+    "test": "playwright test"
   },
   "dependencies": {
     "@api-pokemon/shared": "0.1.0",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "@playwright/test": "latest"
   }
 }

@@ -101,12 +101,11 @@ POST /api/games
 GET  /api/games/:id
 POST /api/games/:id/guess
 POST /api/games/:id/hints
-POST /api/games/:id/finish
-GET  /api/scores?limit=20
+GET  /api/scores?mode=standard
 GET  /api/docs
 ```
 
-Payloads deben validarse y limitarse. Errores de PokéAPI, D1 y proveedor de pistas deben devolver respuestas controladas.
+`POST /api/games` acepta `{ playerName, mode? }`, donde `mode` es `standard` (10 rondas, valor por defecto) o `streak` (termina al primer fallo o timeout). Las respuestas de partida incluyen `mode`, estado, ronda, puntuación, racha, dificultad, pistas, opciones, imagen y timestamp. `POST /api/games/:id/guess` devuelve el resultado de ronda, desglose de puntos, Pokemon resuelto y `nextRound` o `null`; `POST /api/games/:id/hints` devuelve `{ hint, hintsUsed }`; el ranking devuelve `{ scores }` y solo incluye partidas `standard` finalizadas en 10 rondas. Los errores usan `{ error }`, con 503 para fallos controlados de PokéAPI o D1.
 
 ## Modelo D1
 

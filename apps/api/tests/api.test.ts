@@ -22,6 +22,9 @@ vi.stubGlobal("fetch", vi.fn(async (request: RequestInfo | URL) => {
 }));
 
 const env = { ENVIRONMENT: "test" };
+const failingDatabase = {
+  prepare: () => { throw new Error("private D1 failure"); },
+} as unknown as D1Database;
 
 describe("game API", () => {
   it("allows the configured web origin through CORS", async () => {
@@ -45,6 +48,11 @@ describe("game API", () => {
     const openApi = await openApiResponse.json();
     expect(openApi.openapi).toBe("3.0.3");
     expect(openApi.paths).toHaveProperty("/games/{id}/guess");
+    expect(openApi.paths).not.toHaveProperty("/games/{id}/finish");
+    expect(openApi.components.schemas.CreateGame.properties.mode.enum).toEqual(["standard", "streak"]);
+    expect(openApi.paths["/games"].post.responses["201"].content["application/json"].schema.$ref).toBe("#/components/schemas/PublicGame");
+    expect(openApi.paths["/scores"].get.responses["200"].content["application/json"].schema.$ref).toBe("#/components/schemas/ScoreList");
+    expect(openApi.paths["/games"].post.responses["503"].content["application/json"].schema.$ref).toBe("#/components/schemas/Error");
 
     const docsResponse = await app.request("/api/docs", {}, env);
     expect(docsResponse.headers.get("Content-Type")).toContain("text/html");
@@ -65,6 +73,48 @@ describe("game API", () => {
   it("rejects an invalid player name", async () => {
     const response = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "" }) }, env);
     expect(response.status).toBe(400);
+  });
+
+  it.each([
+    ["HTTP error", new Response("upstream failure", { status: 503 })],
+    ["invalid payload", new Response(JSON.stringify({ id: 1, name: "bulbasaur" }), { status: 200 })],
+  ])("uses deterministic fallback for PokéAPI %s", async (_label, upstreamResponse) => {
+    vi.mocked(fetch).mockResolvedValueOnce(upstreamResponse);
+    const response = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Fallback" }) }, env);
+    const body = await response.json() as { choices: string[]; pokemon?: unknown };
+
+    expect(response.status).toBe(201);
+    expect(body).not.toHaveProperty("pokemon");
+    expect(body.choices).toContain("bulbasaur");
+  });
+
+  it("uses fallback when PokéAPI exceeds the timeout", async () => {
+    vi.mocked(fetch).mockImplementationOnce(async (_request, init) => new Promise<Response>((_, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    }));
+    const response = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Timeout" }) }, env);
+
+    expect(response.status).toBe(201);
+  });
+
+  it("returns controlled 503 when no fallback data exists", async () => {
+    vi.mocked(Math.random).mockReturnValueOnce(0.999);
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("upstream failure", { status: 503 }));
+    const response = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Unavailable" }) }, env);
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body).toEqual({ error: "Pokemon data unavailable" });
+    expect(JSON.stringify(body)).not.toContain("stack");
+  });
+
+  it("returns controlled 503 when D1 fails", async () => {
+    const response = await app.request("/api/games/missing", {}, { ...env, DB: failingDatabase });
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body).toEqual({ error: "Storage unavailable" });
+    expect(JSON.stringify(body)).not.toContain("private D1 failure");
   });
 
   it("rejects a guess after the round time limit", async () => {
