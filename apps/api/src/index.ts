@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import type { Difficulty, GameState, PokemonFacts } from "@api-pokemon/shared";
 import { buildHint, calculateRoundPoints, nextDifficulty } from "@api-pokemon/shared";
+import { openApiDocument, swaggerHtml } from "./openapi";
 
 type Bindings = {
   ENVIRONMENT: string;
+  WEB_ORIGIN?: string;
   DB?: D1Database;
 };
 
@@ -22,9 +24,32 @@ const games = new Map<string, Game>();
 
 export const app = new Hono<{ Bindings: Bindings }>().basePath("/api");
 
+app.use("*", async (context, next) => {
+  const origin = context.req.header("Origin");
+  const allowedOrigin = getAllowedOrigin(context.env, origin);
+  const headers = new Headers({
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  });
+  if (allowedOrigin) headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  if (context.req.method === "OPTIONS") return new Response(null, { status: 204, headers });
+
+  await next();
+  if (allowedOrigin) {
+    context.res.headers.set("Access-Control-Allow-Origin", allowedOrigin);
+    context.res.headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    context.res.headers.set("Access-Control-Allow-Headers", "Content-Type");
+    context.res.headers.set("Vary", "Origin");
+  }
+});
+
 app.get("/health", (context) => {
   return context.json({ status: "ok", environment: context.env.ENVIRONMENT });
 });
+
+app.get("/openapi.json", (context) => context.json(openApiDocument));
+app.get("/docs", (context) => new Response(swaggerHtml, { headers: { "Content-Type": "text/html; charset=UTF-8" } }));
 
 app.post("/games", async (context) => {
   const payload = await readJson<{ playerName?: string }>(context.req);
@@ -239,6 +264,12 @@ async function readJson<T>(request: { json: <Body = unknown>() => Promise<Body> 
   } catch {
     return null;
   }
+}
+
+function getAllowedOrigin(bindings: Bindings, origin: string | undefined): string | undefined {
+  if (!origin) return undefined;
+  const allowedOrigins = new Set(["http://localhost:5173", bindings.WEB_ORIGIN].filter(Boolean));
+  return allowedOrigins.has(origin) ? origin : undefined;
 }
 
 export default app;

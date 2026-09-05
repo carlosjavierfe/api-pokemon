@@ -16,6 +16,8 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - `database_id` real de Cloudflare aún debe configurarse antes del despliegue.
 - Frontend jugable implementado con cliente API, pistas, respuesta, resultado y ranking.
 - Proxy Vite configurado para `/api` local.
+- CORS controlado por `WEB_ORIGIN` y localhost.
+- OpenAPI disponible en `/api/openapi.json`; Swagger UI en `/api/docs`.
 
 ## Decisiones confirmadas
 
@@ -140,9 +142,8 @@ Hasta ahora la configuración de agentes está creada, pero las tareas han sido 
 
 ## Próximo orden de implementación
 
-1. Añadir CORS controlado para Pages y Swagger/OpenAPI.
-2. Añadir pruebas de integración visual/API.
-3. Ejecutar pruebas, documentar y desplegar.
+1. Añadir pruebas de integración visual/API.
+2. Ejecutar pruebas, documentar y desplegar.
 
 ## Comandos
 
