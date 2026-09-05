@@ -24,6 +24,8 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - Pool ampliado a los 151 Pokemon originales con selección aleatoria sin repetición inmediata.
 - Límite de 30 segundos por ronda validado en backend y mostrado con cuenta atrás en frontend.
 - Resultado de ronda muestra base, bonus de velocidad, penalización por pistas, multiplicador y total acumulado.
+- Temporizador visible en panel separado y grande; se oculta durante el resultado y reinicia al avanzar de ronda.
+- La ronda activa usa únicamente `game.imageUrl`; la imagen revelada solo aparece en el resultado de la ronda resuelta.
 - Modos disponibles: `standard` (10 rondas) y `streak` (racha hasta primer fallo o timeout).
 - Migración D1 pendiente de aplicar: `migrations/0002_game_mode.sql`.
 
