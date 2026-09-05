@@ -14,6 +14,8 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - API P0 implementada con almacenamiento en memoria para desarrollo local.
 - Persistencia D1 integrada mediante binding `DB`; sin binding se usa memoria para tests locales.
 - `database_id` real de Cloudflare aún debe configurarse antes del despliegue.
+- Frontend jugable implementado con cliente API, pistas, respuesta, resultado y ranking.
+- Proxy Vite configurado para `/api` local.
 
 ## Decisiones confirmadas
 
@@ -138,8 +140,8 @@ Hasta ahora la configuración de agentes está creada, pero las tareas han sido 
 
 ## Próximo orden de implementación
 
-1. Implementar frontend jugable contra los endpoints propios.
-2. Añadir Swagger/OpenAPI.
+1. Añadir CORS controlado para Pages y Swagger/OpenAPI.
+2. Añadir pruebas de integración visual/API.
 3. Ejecutar pruebas, documentar y desplegar.
 
 ## Comandos
