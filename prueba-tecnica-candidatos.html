@@ -1,0 +1,596 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reto: ¿Quién es ese personaje?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --ground:#F3F4F6;
+  --surface:#FFFFFF;
+  --surface-2:#EAECF1;
+  --ink:#151B24;
+  --ink-soft:#485465;
+  --ink-faint:#788496;
+  --line:#DCE0E7;
+  --line-strong:#C4CAD4;
+  --accent:#9B6410;
+  --accent-bright:#B4791F;
+  --accent-soft:#F1E7D2;
+
+  --good:#2E7D5B;  --good-bg:#E4F0EA;
+  --warn:#B26A16;  --warn-bg:#F6EBD8;
+  --crit:#B5372A;  --crit-bg:#F7E2DF;
+  --info:#2C6E9B;  --info-bg:#DFEBF3;
+
+  --shadow:0 1px 2px rgba(21,27,36,.05), 0 6px 20px rgba(21,27,36,.06);
+  --radius:10px;
+  --maxw:1160px;
+  --read:760px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1218;
+    --surface:#161C25;
+    --surface-2:#1E2731;
+    --ink:#E9EDF3;
+    --ink-soft:#A7B2C1;
+    --ink-faint:#6F7B8B;
+    --line:#28313D;
+    --line-strong:#39444F;
+    --accent:#E0A83B;
+    --accent-bright:#EAB85A;
+    --accent-soft:#2A2314;
+
+    --good:#57C79A;  --good-bg:#16281F;
+    --warn:#E0A24A;  --warn-bg:#2A2213;
+    --crit:#E8776A;  --crit-bg:#2E1A18;
+    --info:#6BAFDB;  --info-bg:#12212C;
+
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 26px rgba(0,0,0,.34);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1218;
+  --surface:#161C25;
+  --surface-2:#1E2731;
+  --ink:#E9EDF3;
+  --ink-soft:#A7B2C1;
+  --ink-faint:#6F7B8B;
+  --line:#28313D;
+  --line-strong:#39444F;
+  --accent:#E0A83B;
+  --accent-bright:#EAB85A;
+  --accent-soft:#2A2314;
+
+  --good:#57C79A;  --good-bg:#16281F;
+  --warn:#E0A24A;  --warn-bg:#2A2213;
+  --crit:#E8776A;  --crit-bg:#2E1A18;
+  --info:#6BAFDB;  --info-bg:#12212C;
+
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 26px rgba(0,0,0,.34);
+}
+
+/* ============ BASE ============ */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  font-size:16px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-wrap:break-word;
+}
+h1,h2,h3,h4{margin:0;line-height:1.18;text-wrap:balance}
+p{margin:0}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+a:hover{border-bottom-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent-bright);outline-offset:3px;border-radius:3px}
+strong{font-weight:600;color:var(--ink)}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em;background:var(--surface-2);padding:.12em .4em;border-radius:5px;border:1px solid var(--line)}
+
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;
+  font-weight:600;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);
+}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.serif{font-family:"IBM Plex Serif",Georgia,serif}
+
+/* ============ LAYOUT ============ */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(20px,4vw,44px)}
+.shell{
+  display:grid;
+  grid-template-columns:236px minmax(0,1fr);
+  gap:clamp(28px,5vw,72px);
+  align-items:start;
+}
+@media (max-width:960px){ .shell{grid-template-columns:1fr} .toc{display:none} }
+
+main{max-width:var(--read);min-width:0}
+section{padding-block:clamp(38px,6vw,60px);border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+
+/* ============ TOC ============ */
+.toc{position:sticky;top:24px;padding-top:8px}
+.toc .toc-label{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);padding:0 10px 12px;display:block}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+.toc a{
+  display:flex;gap:12px;align-items:baseline;
+  padding:7px 10px;border-radius:7px;border:none;
+  color:var(--ink-soft);font-size:.9rem;line-height:1.3;
+  transition:background .15s,color .15s;
+}
+.toc a .n{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.toc a:hover{background:var(--surface-2);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink)}
+.toc a.active .n{color:var(--accent)}
+
+/* ============ COVER ============ */
+.cover{padding-block:clamp(40px,7vw,76px) clamp(30px,4vw,46px);border-top:none}
+@media (max-width:600px){.cover{padding-top:58px}}
+.cover .kicker{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.cover .kicker .rule{height:1px;flex:1;background:var(--line-strong)}
+.cover h1{
+  font-family:"IBM Plex Serif",Georgia,serif;font-weight:700;
+  font-size:clamp(2.3rem,5.4vw,3.7rem);letter-spacing:-.015em;
+  margin-bottom:.35em;
+}
+.cover .lede{font-size:clamp(1.05rem,2vw,1.22rem);color:var(--ink-soft);max-width:60ch;line-height:1.55}
+.metagrid{
+  margin-top:34px;display:grid;
+  grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+}
+@media (max-width:640px){.metagrid{grid-template-columns:1fr 1fr}}
+.metagrid div{background:var(--surface);padding:16px 18px}
+.metagrid dt{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px}
+.metagrid dd{margin:0;font-weight:600;font-size:.96rem}
+
+/* ============ SECTION HEADS ============ */
+.sec-head{margin-bottom:26px}
+.sec-head .eyebrow{display:block;margin-bottom:10px}
+.sec-head h2{font-family:"IBM Plex Serif",Georgia,serif;font-weight:600;font-size:clamp(1.55rem,3.2vw,2.1rem);letter-spacing:-.01em}
+.sec-head .sub{margin-top:12px;color:var(--ink-soft);font-size:1.02rem}
+main h3{font-size:1.12rem;font-weight:600;margin:30px 0 8px;letter-spacing:-.005em}
+main h4{font-size:.95rem;font-weight:600;margin:18px 0 6px}
+main p+p{margin-top:12px}
+main > section > p{color:var(--ink)}
+.flow > * + *{margin-top:14px}
+
+/* lists */
+ul.clean{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+ul.clean li{position:relative;padding-left:26px;color:var(--ink-soft)}
+ul.clean li strong{color:var(--ink)}
+ul.clean li::before{content:"";position:absolute;left:6px;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+ul.check li::before,ul.star li::before{content:none}
+ul.check li,ul.star li{padding-left:30px}
+ul.check li .ic,ul.star li .ic{position:absolute;left:0;top:.15em;font-weight:700;font-family:"IBM Plex Mono",monospace}
+ul.check li .ic{color:var(--good)}
+ul.star li .ic{color:var(--accent)}
+
+/* ============ COMPONENT CARDS ============ */
+.comp{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px 24px 26px;margin-top:18px;box-shadow:var(--shadow)}
+.comp-top{display:flex;gap:15px;align-items:flex-start;margin-bottom:6px}
+.comp .num{
+  flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:.9rem;
+  width:34px;height:34px;display:grid;place-items:center;border-radius:8px;
+  background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent)
+}
+.comp h3{margin:3px 0 0;font-size:1.16rem}
+.comp .req{margin-top:4px;color:var(--ink-soft)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:18px}
+@media (max-width:560px){.split{grid-template-columns:1fr;gap:14px}}
+.split .lab{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+
+/* ============ CALLOUT ============ */
+.callout{border:1px solid var(--line);border-left-width:3px;border-radius:8px;padding:16px 18px;margin:20px 0;background:var(--surface);display:flex;gap:13px}
+.callout .tag{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;flex:none;padding-top:2px}
+.callout p{color:var(--ink-soft);font-size:.95rem}
+.callout.info{border-left-color:var(--info);background:var(--info-bg)} .callout.info .tag{color:var(--info)}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-bg)} .callout.warn .tag{color:var(--warn)}
+.callout.tip{border-left-color:var(--good);background:var(--good-bg)} .callout.tip .tag{color:var(--good)}
+
+/* ============ GAME LOOP STRIP ============ */
+.loop{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:18px}
+@media (max-width:680px){.loop{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.loop{grid-template-columns:1fr}}
+.loop .step{background:var(--surface);padding:16px 15px}
+.loop .step .s-n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-weight:600;font-size:.8rem}
+.loop .step .s-t{font-weight:600;font-size:.92rem;margin:6px 0 4px}
+.loop .step .s-d{font-size:.82rem;color:var(--ink-soft);line-height:1.45}
+
+/* ============ TIMELINE ============ */
+.timeline{margin-top:20px;position:relative;padding-left:26px}
+.timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--line-strong)}
+.tl{position:relative;padding:0 0 22px 8px}
+.tl:last-child{padding-bottom:0}
+.tl::before{content:"";position:absolute;left:-23px;top:5px;width:11px;height:11px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.tl .when{font-family:"IBM Plex Mono",monospace;font-size:.76rem;font-weight:600;color:var(--accent);letter-spacing:.02em}
+.tl .what{font-weight:600;margin:2px 0 3px}
+.tl .why{font-size:.9rem;color:var(--ink-soft)}
+
+/* eval dimensions grid */
+.dims{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.dims{grid-template-columns:1fr}}
+.dim-card{border:1px solid var(--line);border-radius:9px;padding:15px 16px;background:var(--surface)}
+.dim-card h4{margin:0 0 5px;font-size:.98rem}
+.dim-card p{font-size:.87rem;color:var(--ink-soft);line-height:1.45}
+
+/* Q bank */
+.qbank{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.qgroup{border:1px solid var(--line);border-radius:9px;background:var(--surface);overflow:hidden}
+.qgroup summary{cursor:pointer;padding:13px 16px;font-weight:600;font-size:.95rem;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.qgroup summary::-webkit-details-marker{display:none}
+.qgroup summary .chev{font-family:"IBM Plex Mono",monospace;color:var(--ink-faint);transition:transform .2s}
+.qgroup[open] summary .chev{transform:rotate(90deg)}
+.qgroup summary:hover{background:var(--surface-2)}
+.qgroup .body{padding:2px 16px 15px}
+.qgroup ul{margin:0;padding-left:18px;color:var(--ink-soft);display:flex;flex-direction:column;gap:7px;font-size:.93rem}
+
+/* anexos links */
+.links{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.links{grid-template-columns:1fr}}
+.lk{display:block;border:1px solid var(--line);border-radius:9px;padding:15px 16px;background:var(--surface);border-bottom-width:1px}
+.lk:hover{border-color:var(--accent);background:var(--surface-2)}
+.lk .lk-t{font-weight:600;font-size:.95rem;color:var(--ink)}
+.lk .lk-u{font-family:"IBM Plex Mono",monospace;font-size:.76rem;color:var(--ink-faint);word-break:break-all;margin-top:3px}
+.lk .lk-d{font-size:.85rem;color:var(--ink-soft);margin-top:7px}
+
+/* ============ THEME TOGGLE ============ */
+.theme-btn{
+  position:fixed;top:16px;right:16px;z-index:50;
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);
+  border-radius:22px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.8rem;font-weight:500;
+  box-shadow:var(--shadow);transition:color .15s,border-color .15s;
+}
+.theme-btn:hover{color:var(--ink);border-color:var(--line-strong)}
+.theme-btn .ti{font-family:"IBM Plex Mono",monospace;font-size:.95rem}
+@media (max-width:600px){.theme-btn{padding:8px;border-radius:50%} .theme-btn #themeLabel{display:none}}
+
+/* footer */
+.foot{border-top:1px solid var(--line);padding:30px 0 60px;color:var(--ink-faint);font-size:.85rem}
+
+/* reveal anim */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+
+/* ============ PRINT ============ */
+@media print{
+  .toc,.theme-btn{display:none}
+  .shell{display:block}
+  body{background:#fff;color:#000;font-size:11pt}
+  section{padding-block:14px;break-inside:avoid}
+  .comp,.callout,.lk,.qgroup,.dim-card{box-shadow:none;break-inside:avoid}
+  .qgroup[open] .body,.qgroup .body{display:block}
+  a{color:#000;border:none}
+}
+</style>
+
+<button class="theme-btn" id="themeBtn" aria-label="Cambiar tema"><span class="ti" aria-hidden="true">◐</span><span id="themeLabel">Tema</span></button>
+
+<div class="wrap">
+<div class="shell">
+
+  <!-- ============ TOC ============ -->
+  <nav class="toc" aria-label="Contenido">
+    <span class="toc-label">Contenido</span>
+    <ol>
+      <li><a href="#contexto"><span class="n">01</span><span>Antes de empezar</span></a></li>
+      <li><a href="#reto"><span class="n">02</span><span>El reto: el juego</span></a></li>
+      <li><a href="#requisitos"><span class="n">03</span><span>Requisitos obligatorios</span></a></li>
+      <li><a href="#calidad"><span class="n">04</span><span>Calidad de ingeniería</span></a></li>
+      <li><a href="#entregables"><span class="n">05</span><span>Qué entregar</span></a></li>
+      <li><a href="#reglas"><span class="n">06</span><span>Reglas y condiciones</span></a></li>
+      <li><a href="#evaluacion"><span class="n">07</span><span>Cómo evaluamos</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ============ COVER ============ -->
+    <header class="cover">
+      <div class="kicker">
+        <span class="eyebrow">Prueba técnica · Candidatos</span>
+        <span class="rule"></span>
+      </div>
+      <h1>¿Quién es ese personaje?</h1>
+      <p class="lede">Tu reto: construir, en unas <strong>24 horas efectivas</strong>, un juego web (o móvil) de adivinanza que consuma una API pública, con <strong>pistas generadas por IA</strong>, <strong>dificultad adaptativa</strong> y un <strong>backend de puntajes</strong> — apoyándote en <strong>agentes de desarrollo</strong>.</p>
+
+      <dl class="metagrid">
+        <div><dt>Modalidad</dt><dd>Reto individual, en casa</dd></div>
+        <div><dt>Tiempo estimado</dt><dd>~24 h efectivas</dd></div>
+        <div><dt>Sustentación</dt><dd>45 min máximo</dd></div>
+        <div><dt>API</dt><dd><a href="https://pokeapi.co/docs/v2" target="_blank" rel="noopener">PokéAPI</a> o <a href="https://developer.marvel.com/documentation/getting_started" target="_blank" rel="noopener">Marvel</a> (tú eliges)</dd></div>
+        <div><dt>Entrega</dt><dd>Repositorio + documentación</dd></div>
+        <div><dt>Fecha límite</dt><dd>7 de septiembre · 10:00 a. m.</dd></div>
+      </dl>
+    </header>
+
+    <!-- ============ 01 CONTEXTO ============ -->
+    <section id="contexto">
+      <div class="sec-head">
+        <span class="eyebrow">§ 01 — Antes de empezar</span>
+        <h2>Qué buscamos en ti</h2>
+        <p class="sub">Esto no es una prueba de "hacer que funcione". Es tu oportunidad de mostrar <strong>criterio</strong>: cómo diseñas, qué priorizas, qué decides dejar fuera y cómo lo explicas.</p>
+      </div>
+      <div class="flow">
+        <p>Te damos un problema deliberadamente amplio para unas 24 horas efectivas. <strong>No esperamos perfección ni que hagas absolutamente todo al máximo detalle.</strong> Esperamos decisiones sensatas de arquitectura y alcance, un producto que funcione de punta a punta y que sepas defender cada decisión.</p>
+        <p>La entrega importa, pero la <strong>sustentación es parte central</strong> de la evaluación: prepárate para demostrar en vivo lo que construiste y explicar por qué lo hiciste así.</p>
+        <h3>Lo que más valoramos</h3>
+        <ul class="clean">
+          <li><strong>Arquitectura y criterio.</strong> Separación clara de responsabilidades y decisiones justificadas frente a alternativas.</li>
+          <li><strong>Calidad de ingeniería.</strong> Código legible, manejo de errores, seguridad de credenciales y algo de pruebas — no solo el "camino feliz".</li>
+          <li><strong>IA con propósito.</strong> Que la IA aporte valor real al juego y esté bien diseñada, no pegada como adorno.</li>
+          <li><strong>Productividad con agentes.</strong> Uso deliberado de agentes de desarrollo, entendiendo y verificando lo que producen.</li>
+          <li><strong>Comunicación.</strong> Explicar trade-offs, reconocer lo que quedó fuera y proponer el siguiente paso.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 02 EL RETO ============ -->
+    <section id="reto">
+      <div class="sec-head">
+        <span class="eyebrow">§ 02 — El reto</span>
+        <h2>El juego: «¿Quién es ese personaje?»</h2>
+        <p class="sub">El juego es el mismo para todos. Tu creatividad se juega en <em>cómo</em> lo construyes, no en <em>qué</em> construyes.</p>
+      </div>
+      <div class="flow">
+        <p>El jugador ve una entidad <strong>oculta</strong> (silueta, imagen difuminada o recorte) obtenida de la API y debe <strong>adivinar quién es</strong>. Puede pedir pistas —generadas por IA— a costa de puntos, y el sistema ajusta la dificultad según su desempeño. Los puntajes se guardan y se muestran en un ranking.</p>
+
+        <h3>Bucle de juego</h3>
+        <div class="loop">
+          <div class="step"><div class="s-n">01</div><div class="s-t">Presenta</div><div class="s-d">Se elige una entidad y se muestra oculta (silueta/blur/recorte) sin revelar el nombre.</div></div>
+          <div class="step"><div class="s-n">02</div><div class="s-t">Adivina</div><div class="s-d">El jugador escribe o selecciona el nombre, con un tiempo límite por ronda.</div></div>
+          <div class="step"><div class="s-n">03</div><div class="s-t">Pistas (IA)</div><div class="s-d">Hasta 3 pistas progresivas generadas por IA; cada una resta puntos y no revela el nombre.</div></div>
+          <div class="step"><div class="s-n">04</div><div class="s-t">Resuelve</div><div class="s-d">Acierto o fallo: se revela la entidad y se calcula el puntaje de la ronda.</div></div>
+          <div class="step"><div class="s-n">05</div><div class="s-t">Adapta y guarda</div><div class="s-d">La dificultad se ajusta; al terminar, el puntaje se persiste y se ve el ranking.</div></div>
+        </div>
+
+        <h3>Reglas y puntuación (base)</h3>
+        <p>Son el mínimo común. Puedes afinarlas, pero prepárate para justificarlo en la defensa.</p>
+        <ul class="clean">
+          <li><strong>Partida:</strong> 10 rondas, o modo "racha infinita" hasta el primer fallo.</li>
+          <li><strong>Puntos por acierto:</strong> base (p. ej. 100) + bonus por velocidad.</li>
+          <li><strong>Racha:</strong> multiplicador acumulativo por aciertos consecutivos.</li>
+          <li><strong>Penalizaciones:</strong> cada pista usada y el tiempo transcurrido restan puntos.</li>
+          <li><strong>Fin de partida:</strong> el puntaje total se guarda en el backend y se muestra en un ranking.</li>
+        </ul>
+
+        <h3>Tú eliges la API — y es una decisión de arquitectura</h3>
+        <p>El juego es idéntico con cualquiera de las dos, pero la elección tiene consecuencias técnicas:</p>
+        <div class="split">
+          <div>
+            <div class="lab">Opción A · PokéAPI</div>
+            <ul class="clean">
+              <li>Sin autenticación, abierta. Menor fricción.</li>
+              <li>Rica en atributos para pistas: tipos, estadísticas, altura, peso, habilidades.</li>
+              <li>Sprites y <em>official artwork</em> ideales para la silueta.</li>
+              <li>Reto: cachear y respetar sus límites de uso (es un servicio comunitario).</li>
+            </ul>
+          </div>
+          <div>
+            <div class="lab">Opción B · Marvel API</div>
+            <ul class="clean">
+              <li>Requiere clave pública + privada y firma con <code>hash md5(ts+priv+pub)</code>.</li>
+              <li><strong>La clave privada obliga a un proxy en el backend</strong> — nunca en el cliente.</li>
+              <li>Menos stats "de combate": las pistas se apoyan en apariciones (cómics, series) y descripción.</li>
+              <li>Reto: manejar la firma, los límites diarios y los datos incompletos.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 03 REQUISITOS ============ -->
+    <section id="requisitos">
+      <div class="sec-head">
+        <span class="eyebrow">§ 03 — Requisitos obligatorios</span>
+        <h2>Los 6 componentes</h2>
+        <p class="sub">Los seis son <strong>obligatorios</strong>. Para cada uno verás lo que debe cumplirse como <em>mínimo</em>; qué construir por encima de eso es decisión tuya.</p>
+      </div>
+
+      <div class="callout warn">
+        <span class="tag">Consejo de alcance</span>
+        <p>Es mucho para ~24 horas efectivas, <strong>a propósito</strong>. No intentes pulir todo: consigue primero los seis componentes funcionando al mínimo y luego profundiza en uno. Una entrega completa y modesta vale más que una incompleta y ambiciosa.</p>
+      </div>
+
+      <!-- comp 1 -->
+      <div class="comp">
+        <div class="comp-top"><div class="num">1</div><div><h3>Aplicación (web y/o móvil) + integración de la API</h3><p class="req">Un frontend prototipo, jugable, que consume la API elegida y usa sus imágenes y datos.</p></div></div>
+        <ul class="clean check">
+          <li><span class="ic">✓</span>Se puede jugar una partida completa de principio a fin.</li>
+          <li><span class="ic">✓</span>Consume la API real y muestra imágenes/datos de sus entidades.</li>
+          <li><span class="ic">✓</span>Estados básicos de carga y error visibles al usuario.</li>
+        </ul>
+      </div>
+
+      <!-- comp 2 -->
+      <div class="comp">
+        <div class="comp-top"><div class="num">2</div><div><h3>Funcionalidad de IA</h3><p class="req">La IA debe aportar valor real al juego mediante <strong>pistas</strong> y/o <strong>dificultad adaptativa</strong>.</p></div></div>
+        <ul class="clean check">
+          <li><span class="ic">✓</span>Al menos una de las dos capacidades funciona y afecta el juego.</li>
+          <li><span class="ic">✓</span>Las pistas <strong>no revelan</strong> el nombre de la entidad.</li>
+          <li><span class="ic">✓</span>Hay un plan B si el servicio de IA falla (no se rompe la partida).</li>
+        </ul>
+        <div class="callout info"><span class="tag">Nota</span><p>Vale usar un LLM (API en la nube o modelo local) o un enfoque heurístico/ML bien justificado. Lo que evaluamos es el <strong>diseño</strong> de la funcionalidad, no la marca del modelo.</p></div>
+      </div>
+
+      <!-- comp 3 -->
+      <div class="comp">
+        <div class="comp-top"><div class="num">3</div><div><h3>Desarrollo con agentes de software</h3><p class="req">Apóyate en agentes de desarrollo (Claude Code, Cursor, Copilot, etc.) para implementar la solución, y <strong>documenta cómo lo hiciste</strong>.</p></div></div>
+        <ul class="clean check">
+          <li><span class="ic">✓</span>Un archivo <code>AI_USAGE.md</code> que liste qué agentes/herramientas usaste.</li>
+          <li><span class="ic">✓</span>Ejemplos de prompts o flujos relevantes y qué generaron.</li>
+          <li><span class="ic">✓</span>Qué aceptaste, qué descartaste y por qué.</li>
+        </ul>
+        <div class="callout tip"><span class="tag">Importante</span><p>Usar agentes es <strong>esperado y bienvenido</strong>. En la sustentación te pediremos explicar y modificar partes de tu código en vivo: entrega solo lo que de verdad entiendes.</p></div>
+      </div>
+
+      <!-- comp 4 -->
+      <div class="comp">
+        <div class="comp-top"><div class="num">4</div><div><h3>Backend y persistencia</h3><p class="req">Un backend propio que almacene datos y puntajes del juego y exponga una API para el frontend.</p></div></div>
+        <ul class="clean check">
+          <li><span class="ic">✓</span>Persiste puntajes de partidas (base de datos o almacenamiento durable).</li>
+          <li><span class="ic">✓</span>Expone endpoints para guardar y consultar puntajes/ranking.</li>
+          <li><span class="ic">✓</span>El frontend consume tu backend, no solo la API pública directamente.</li>
+        </ul>
+      </div>
+
+      <!-- comp 5 -->
+      <div class="comp">
+        <div class="comp-top"><div class="num">5</div><div><h3>Enfoque ágil</h3><p class="req">Aplica un marco ágil durante el desarrollo y prepárate para explicarlo junto con tus decisiones de diseño.</p></div></div>
+        <ul class="clean check">
+          <li><span class="ic">✓</span>Un tablero visible (GitHub Projects, Trello, Jira…) con historias/tareas.</li>
+          <li><span class="ic">✓</span>Historial de commits que refleje incrementos, no un solo volcado final.</li>
+          <li><span class="ic">✓</span>Priorización explícita de qué entra en el alcance y qué no.</li>
+        </ul>
+      </div>
+
+      <!-- comp 6 -->
+      <div class="comp">
+        <div class="comp-top"><div class="num">6</div><div><h3>Repositorio y documentación</h3><p class="req">La entrega es un repositorio con el código y documentación básica que permita entender y ejecutar el proyecto.</p></div></div>
+        <ul class="clean check">
+          <li><span class="ic">✓</span><code>README</code> con qué es, stack y cómo ejecutarlo localmente.</li>
+          <li><span class="ic">✓</span>Variables de entorno documentadas (con <code>.env.example</code>, sin secretos).</li>
+          <li><span class="ic">✓</span>Acceso al repositorio para el equipo evaluador.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 04 CALIDAD ============ -->
+    <section id="calidad">
+      <div class="sec-head">
+        <span class="eyebrow">§ 04 — Calidad</span>
+        <h2>Calidad de ingeniería</h2>
+        <p class="sub">Transversal a los seis componentes. Cuídalo: es lo que distingue una entrega senior de una notable.</p>
+      </div>
+      <ul class="clean check">
+        <li><span class="ic">✓</span><strong>Secretos fuera del repo.</strong> Nada de claves/API keys commiteadas.</li>
+        <li><span class="ic">✓</span>Manejo de errores más allá del camino feliz.</li>
+        <li><span class="ic">✓</span>Estructura de carpetas coherente y nombres claros.</li>
+        <li><span class="ic">✓</span>El proyecto arranca siguiendo el README, sin pasos ocultos.</li>
+      </ul>
+    </section>
+
+    <!-- ============ 05 ENTREGABLES ============ -->
+    <section id="entregables">
+      <div class="sec-head">
+        <span class="eyebrow">§ 05 — Entrega</span>
+        <h2>Qué debes entregar</h2>
+        <p class="sub">Todo vive en el repositorio.</p>
+      </div>
+      <ul class="clean">
+        <li><strong>Repositorio Git</strong> con el código de frontend y backend e historial de commits incremental.</li>
+        <li><strong><code>README.md</code></strong> — descripción, stack, cómo ejecutar en local, variables de entorno (<code>.env.example</code>).</li>
+        <li><strong><code>DECISIONS.md</code></strong> (o ADRs) — decisiones de arquitectura, alternativas consideradas, trade-offs, limitaciones y próximos pasos.</li>
+        <li><strong><code>AI_USAGE.md</code></strong> — cómo usaste agentes de desarrollo: herramientas, prompts clave, qué aceptaste/descartaste, cómo verificaste.</li>
+        <li><strong>Enlace al tablero ágil</strong> con las historias/tareas del reto.</li>
+        <li><strong>Opcional:</strong> URL del despliegue y/o un video corto (≤3 min) de demo.</li>
+      </ul>
+      <div class="callout info">
+        <span class="tag">Cómo enviarlo</span>
+        <p>Envía el enlace del repositorio (y accesos si es privado) a <strong>cacostav@fgs.co</strong> antes del <strong>7 de septiembre, 10:00 a. m.</strong> Cualquier correo posterior a la fecha y hora se entenderá como desistimiento de la candidatura. Si algo te bloquea durante el reto, escríbenos por <strong>Teams (Christian Acosta Valdés)</strong>.</p>
+      </div>
+    </section>
+
+    <!-- ============ 06 REGLAS ============ -->
+    <section id="reglas">
+      <div class="sec-head">
+        <span class="eyebrow">§ 06 — Reglas</span>
+        <h2>Condiciones del reto</h2>
+      </div>
+      <ul class="clean">
+        <li><strong>Tiempo:</strong> ~24 horas efectivas. No penalizamos usar menos — evaluamos el resultado y la defensa, no las horas.</li>
+        <li><strong>Stack libre.</strong> Elige lenguajes, frameworks y base de datos que domines; esa elección también dice mucho de ti.</li>
+        <li><strong>Uso de IA y agentes: permitido y esperado.</strong> Debes documentarlo (ver §05) y sabrás defender tu código en vivo.</li>
+        <li><strong>Trabajo individual y original.</strong> Puedes usar librerías y plantillas de código abierto citándolas; no entregues trabajo de terceros como propio.</li>
+        <li><strong>Costos de IA:</strong> usa tiers gratuitos, créditos de prueba o modelos locales. No necesitas gastar dinero; si usas una clave, no la subas al repo.</li>
+        <li><strong>Ante la duda,</strong> decide con criterio, documenta el supuesto y explícalo en la defensa. Saber operar con ambigüedad es parte del reto.</li>
+      </ul>
+    </section>
+
+    <!-- ============ 07 EVALUACION ============ -->
+    <section id="evaluacion">
+      <div class="sec-head">
+        <span class="eyebrow">§ 07 — Evaluación</span>
+        <h2>Cómo evaluamos</h2>
+        <p class="sub">Miramos tu entrega <em>y</em> tu sustentación en conjunto. Estas son las dimensiones que consideramos:</p>
+      </div>
+      <div class="dims">
+        <div class="dim-card"><h4>Arquitectura y diseño</h4><p>Separación de capas, límites claros y decisiones justificadas frente a alternativas.</p></div>
+        <div class="dim-card"><h4>Calidad de código</h4><p>Legibilidad, consistencia y manejo de errores más allá del camino feliz.</p></div>
+        <div class="dim-card"><h4>Integración de la API</h4><p>Consumo correcto, uso de imágenes/datos, límites, errores y credenciales protegidas.</p></div>
+        <div class="dim-card"><h4>Funcionalidad de IA</h4><p>Valor real en el juego, sin spoilers, con plan B y conciencia de costo/latencia.</p></div>
+        <div class="dim-card"><h4>Backend y persistencia</h4><p>Modelo de datos, diseño de API, validación y puntajes durables.</p></div>
+        <div class="dim-card"><h4>Uso de agentes</h4><p>Evidencia y criterio al usarlos, y cómo verificas lo que generan.</p></div>
+        <div class="dim-card"><h4>Proceso ágil</h4><p>Tablero, incrementos, priorización y una retro honesta del proceso.</p></div>
+        <div class="dim-card"><h4>Documentación</h4><p>README ejecutable, decisiones registradas y límites/próximos pasos explícitos.</p></div>
+        <div class="dim-card"><h4>Comunicación</h4><p>Claridad al explicar y defender tus decisiones en la sustentación.</p></div>
+      </div>
+      <div class="callout tip">
+        <span class="tag">En una frase</span>
+        <p>Valoramos el <strong>criterio y la arquitectura</strong> por encima de la cantidad de funcionalidades. Preferimos una entrega enfocada, bien construida y bien explicada a una llena de features a medio terminar.</p>
+      </div>
+    </section>
+
+    <footer class="foot">
+      Prueba técnica · ¡Éxitos con el reto!
+    </footer>
+
+  </main>
+</div>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn'), lbl=document.getElementById('themeLabel');
+  function sys(){return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var saved=null;
+  try{saved=localStorage.getItem('pt-cand-theme');}catch(e){}
+  if(saved==='dark'||saved==='light'){root.setAttribute('data-theme',saved);}
+  function cur(){return root.getAttribute('data-theme')||sys();}
+  function paint(){lbl.textContent=cur()==='dark'?'Claro':'Oscuro';}
+  paint();
+  btn.addEventListener('click',function(){
+    var next=cur()==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('pt-cand-theme',next);}catch(e){}
+    paint();
+  });
+
+  var links=Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var map={};
+  links.forEach(function(a){var id=a.getAttribute('href').slice(1);map[id]=a;});
+  var secs=Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  if('IntersectionObserver' in window){
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(a){a.classList.remove('active');});
+          var a=map[en.target.id]; if(a)a.classList.add('active');
+        }
+      });
+    },{rootMargin:'-15% 0px -70% 0px',threshold:0});
+    secs.forEach(function(s){obs.observe(s);});
+  }
+
+  var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if('IntersectionObserver' in window && !rm){
+    document.querySelectorAll('main section, .cover').forEach(function(el){el.classList.add('reveal');});
+    var ro=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');ro.unobserve(en.target);}});
+    },{rootMargin:'0px 0px -8% 0px',threshold:.05});
+    document.querySelectorAll('.reveal').forEach(function(el){ro.observe(el);});
+  }
+})();
+</script>
