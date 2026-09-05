@@ -27,6 +27,8 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - Temporizador visible en panel separado y grande; se oculta durante el resultado y reinicia al avanzar de ronda.
 - La ronda activa usa únicamente `game.imageUrl`; la imagen revelada solo aparece en el resultado de la ronda resuelta.
 - Cada ronda ofrece dos opciones de respuesta, con una correcta y un distractor; la validación sigue en backend.
+- Ranking estándar filtrado a partidas `standard` finalizadas en exactamente 10 rondas.
+- Feedback visual accesible: check para acierto, X para error y estado diferenciado para timeout.
 - Migración D1 pendiente de aplicar: `migrations/0003_game_choices.sql`.
 - Modos disponibles: `standard` (10 rondas) y `streak` (racha hasta primer fallo o timeout).
 - Migración D1 pendiente de aplicar: `migrations/0002_game_mode.sql`.

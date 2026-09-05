@@ -153,15 +153,24 @@ app.post("/games/:id/guess", async (context) => {
 });
 
 app.get("/scores", async (context) => {
+  const mode = context.req.query("mode") ?? "standard";
+  if (mode !== "standard") {
+    return context.json({ error: "Only the standard ranking is available" }, 400);
+  }
+
   if (context.env.DB) {
     const result = await context.env.DB.prepare(
-      "SELECT player_name AS playerName, score, rounds FROM scores ORDER BY score DESC LIMIT 20",
+      `SELECT scores.player_name AS playerName, scores.score, scores.rounds
+       FROM scores
+       INNER JOIN games ON games.id = scores.game_id
+       WHERE games.mode = 'standard' AND games.status = 'finished' AND scores.rounds = 10
+       ORDER BY scores.score DESC LIMIT 20`,
     ).all<{ playerName: string; score: number; rounds: number }>();
     return context.json({ scores: result.results });
   }
 
   const scores = [...games.values()]
-    .filter((game) => game.status === "finished")
+    .filter((game) => game.mode === "standard" && game.status === "finished" && game.round === 10)
     .sort((left, right) => right.score - left.score)
     .slice(0, 20)
     .map((game) => ({ playerName: game.playerName, score: game.score, rounds: game.round }));

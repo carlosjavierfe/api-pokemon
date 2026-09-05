@@ -73,6 +73,13 @@
 - El backend conserva la respuesta correcta y valida la selección.
 - Las opciones activas se persisten en D1 mediante `migrations/0003_game_choices.sql`.
 
+## ADR-012: Rankings y feedback de resolución
+
+- Estado: aceptada.
+- El ranking estándar incluye únicamente partidas `standard` finalizadas en exactamente 10 rondas.
+- Las partidas `streak` no contaminan el ranking estándar.
+- El frontend muestra check verde para acierto, X roja para error y estado diferenciado para timeout.
+
 ## Riesgos abiertos
 
 - Deben probarse frontend y API en una URL pública.

@@ -68,10 +68,10 @@ El frontend no consulta PokéAPI directamente. La respuesta correcta y el cálcu
 
 ## D1 y Cloudflare
 
-La migración está en `migrations/0001_initial.sql`. Antes de desplegar hay que:
+Las migraciones están en `migrations/0001_initial.sql`, `migrations/0002_game_mode.sql` y `migrations/0003_game_choices.sql`; deben aplicarse en ese orden. Antes de desplegar hay que:
 
 1. Crear una base D1.
-2. Aplicar la migración con Wrangler.
+2. Aplicar las tres migraciones con Wrangler y confirmar que 0002 y 0003 están instaladas.
 3. Configurar `WEB_ORIGIN` con el dominio de Cloudflare Pages.
 
 Sin binding D1, el Worker usa memoria para desarrollo y pruebas locales.
@@ -86,4 +86,4 @@ Incluye partidas estándar de 10 rondas y modo racha hasta el primer fallo, opci
 
 ## Estado
 
-El dominio, API P0, frontend, CORS, OpenAPI, modo de 10 rondas y D1 real están implementados. Pendientes: desplegar y probar la URL pública.
+El dominio, API P0, frontend, CORS, OpenAPI, modo de 10 rondas y D1 real están implementados. Antes del release: aplicar 0002 y 0003 si la D1 de producción solo tiene 0001, y probar la URL pública.

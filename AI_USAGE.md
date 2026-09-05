@@ -46,7 +46,31 @@ Resultado: recomendación de cambio y casos de prueba para backend.
 Validación: revisión de `MEMORIA_PROYECTO.md` y archivos de API.
 Estado: aceptado como guía de implementación.
 
+### 2026-09-05 — Orchestrator -> backend
+Tarea: implementar ranking standard de partidas completadas en exactamente 10 rondas.
+Resultado: filtro por defecto `mode=standard`, exclusión de streak e incompletas y OpenAPI actualizado.
+Validación: tests de API y typecheck del backend.
+Estado: aceptado.
+
+### 2026-09-05 — Orchestrator -> frontend
+Tarea: añadir feedback visual accesible para acierto, error y timeout.
+Resultado: check verde, X roja e indicador de tiempo agotado en los estados de resultado.
+Validación: `npm --workspace apps/web run typecheck` y `npm --workspace apps/web run build` correctos.
+Estado: aceptado.
+
 Las siguientes tareas se registrarán aquí únicamente cuando el orquestador las delegue y exista una validación comprobable.
+
+### 2026-09-05 — Orchestrator -> qa-release
+Tarea: revisar flujo completo, ranking standard, opciones, temporizador, migraciones, secretos y llamadas externas.
+Resultado: ranking standard y feedback visual revisados; documentación de migraciones actualizada.
+Validación: `npm run typecheck`, `npm test`, `npm run build`, `git diff --check`; D1 local/remota sin migraciones pendientes.
+Estado: aceptado; pendiente smoke test de la URL pública.
+
+### 2026-09-05 — Orchestrator -> backend/frontend/qa-release
+Tarea: ranking standard de 10 rondas y feedback visual check/X/timeout.
+Resultado: filtro backend, pruebas de exclusión y feedback accesible sin emojis.
+Validación: suite API/dominio, typecheck, build y revisión QA correctos.
+Estado: aceptado para commit; pendiente push y smoke test público.
 
 ## Prompts y resultados relevantes
 

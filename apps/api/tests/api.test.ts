@@ -142,4 +142,40 @@ describe("game API", () => {
     const result = await response.json() as { finished: boolean; streak: number };
     expect(result).toMatchObject({ finished: true, streak: 0 });
   });
+
+  it("returns only completed standard games with exactly ten rounds", async () => {
+    const incompleteResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Incomplete" }) }, env);
+    const incompleteGame = await incompleteResponse.json() as { id: string };
+    await app.request(`/api/games/${incompleteGame.id}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ answer: "pikachu" }),
+    }, env);
+
+    const streakResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Streak ranking exclusion", mode: "streak" }) }, env);
+    const streakGame = await streakResponse.json() as { id: string };
+    await app.request(`/api/games/${streakGame.id}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ answer: "wrong-answer" }),
+    }, env);
+
+    const standardResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Standard ranking" }) }, env);
+    const standardGame = await standardResponse.json() as { id: string };
+    for (let round = 1; round <= 10; round += 1) {
+      await app.request(`/api/games/${standardGame.id}/guess`, {
+        method: "POST",
+        body: JSON.stringify({ answer: "pikachu" }),
+      }, env);
+    }
+
+    const scoresResponse = await app.request("/api/scores?mode=standard", {}, env);
+    const scores = await scoresResponse.json() as { scores: Array<{ playerName: string; rounds: number }> };
+    expect(scores.scores).toContainEqual({ playerName: "Standard ranking", score: expect.any(Number), rounds: 10 });
+    expect(scores.scores.some((score) => score.playerName === "Incomplete")).toBe(false);
+    expect(scores.scores.some((score) => score.playerName === "Streak ranking exclusion")).toBe(false);
+  });
+
+  it("rejects unsupported ranking modes", async () => {
+    const response = await app.request("/api/scores?mode=streak", {}, env);
+    expect(response.status).toBe(400);
+  });
 });

@@ -25,7 +25,13 @@ export const openApiDocument = {
         responses: { "200": { description: "Resultado de la ronda" }, "400": { description: "Payload inválido" } },
       },
     },
-    "/scores": { get: { summary: "Consulta el ranking", responses: { "200": { description: "Ranking de puntuaciones" } } } },
+    "/scores": {
+      get: {
+        summary: "Consulta el ranking standard",
+        parameters: [{ name: "mode", in: "query", required: false, schema: { type: "string", enum: ["standard"], default: "standard" } }],
+        responses: { "200": { description: "Ranking de partidas standard completadas en 10 rondas" }, "400": { description: "Modo de ranking no soportado" } },
+      },
+    },
   },
   components: {
     parameters: { GameId: { name: "id", in: "path", required: true, schema: { type: "string" } } },
