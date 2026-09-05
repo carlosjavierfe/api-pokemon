@@ -12,7 +12,8 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - `npm run build`: correcto.
 - Dominio puro implementado y probado.
 - API P0 implementada con almacenamiento en memoria para desarrollo local.
-- Persistencia D1: siguiente incremento.
+- Persistencia D1 integrada mediante binding `DB`; sin binding se usa memoria para tests locales.
+- `database_id` real de Cloudflare aún debe configurarse antes del despliegue.
 
 ## Decisiones confirmadas
 
@@ -137,10 +138,9 @@ Hasta ahora la configuración de agentes está creada, pero las tareas han sido 
 
 ## Próximo orden de implementación
 
-1. Conectar la API P0 al repositorio D1.
-2. Implementar frontend jugable contra los endpoints propios.
-3. Añadir Swagger/OpenAPI.
-4. Ejecutar pruebas, documentar y desplegar.
+1. Implementar frontend jugable contra los endpoints propios.
+2. Añadir Swagger/OpenAPI.
+3. Ejecutar pruebas, documentar y desplegar.
 
 ## Comandos
 

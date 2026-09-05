@@ -5,6 +5,11 @@ CREATE TABLE IF NOT EXISTS games (
   round_count INTEGER NOT NULL DEFAULT 0,
   score INTEGER NOT NULL DEFAULT 0,
   streak INTEGER NOT NULL DEFAULT 0,
+  player_name TEXT NOT NULL,
+  pokemon_json TEXT NOT NULL,
+  hints_json TEXT NOT NULL DEFAULT '[]',
+  started_at INTEGER NOT NULL,
+  round INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
   finished_at TEXT
 );

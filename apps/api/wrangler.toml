@@ -4,3 +4,9 @@ compatibility_date = "2026-09-05"
 
 [vars]
 ENVIRONMENT = "development"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "api-pokemon-db"
+database_id = "replace-with-cloudflare-d1-id"
+migrations_dir = "../../migrations"

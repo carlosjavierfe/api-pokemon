@@ -4,6 +4,7 @@ import { buildHint, calculateRoundPoints, nextDifficulty } from "@api-pokemon/sh
 
 type Bindings = {
   ENVIRONMENT: string;
+  DB?: D1Database;
 };
 
 type Game = GameState & {
@@ -49,27 +50,29 @@ app.post("/games", async (context) => {
   };
 
   games.set(game.id, game);
+  if (context.env.DB) await saveGame(context.env.DB, game);
   return context.json(publicGame(game), 201);
 });
 
-app.get("/games/:id", (context) => {
-  const game = games.get(context.req.param("id"));
+app.get("/games/:id", async (context) => {
+  const game = await findGame(context.env.DB, context.req.param("id"));
   return game ? context.json(publicGame(game)) : context.json({ error: "Game not found" }, 404);
 });
 
-app.post("/games/:id/hints", (context) => {
-  const game = games.get(context.req.param("id"));
+app.post("/games/:id/hints", async (context) => {
+  const game = await findGame(context.env.DB, context.req.param("id"));
   if (!game) return context.json({ error: "Game not found" }, 404);
   if (game.status !== "active") return context.json({ error: "Game is finished" }, 409);
   if (game.hints.length >= 3) return context.json({ error: "Maximum hints reached" }, 409);
 
   const hint = buildHint(game.pokemon, (game.hints.length + 1) as 1 | 2 | 3);
   game.hints.push(hint);
+  if (context.env.DB) await saveGame(context.env.DB, game);
   return context.json({ hint, hintsUsed: game.hints.length });
 });
 
 app.post("/games/:id/guess", async (context) => {
-  const game = games.get(context.req.param("id"));
+  const game = await findGame(context.env.DB, context.req.param("id"));
   if (!game) return context.json({ error: "Game not found" }, 404);
   if (game.status !== "active") return context.json({ error: "Game is finished" }, 409);
 
@@ -89,6 +92,7 @@ app.post("/games/:id/guess", async (context) => {
   game.score += points;
   game.difficulty = nextDifficulty(game.difficulty, correct, game.hints.length);
   game.status = "finished";
+  if (context.env.DB) await saveGame(context.env.DB, game, true);
 
   return context.json({
     correct,
@@ -100,7 +104,14 @@ app.post("/games/:id/guess", async (context) => {
   });
 });
 
-app.get("/scores", (context) => {
+app.get("/scores", async (context) => {
+  if (context.env.DB) {
+    const result = await context.env.DB.prepare(
+      "SELECT player_name AS playerName, score, rounds FROM scores ORDER BY score DESC LIMIT 20",
+    ).all<{ playerName: string; score: number; rounds: number }>();
+    return context.json({ scores: result.results });
+  }
+
   const scores = [...games.values()]
     .filter((game) => game.status === "finished")
     .sort((left, right) => right.score - left.score)
@@ -123,6 +134,76 @@ function publicGame(game: Game) {
     imageUrl: pokemonImageUrl(game.pokemon.id),
   };
 }
+
+async function findGame(database: D1Database | undefined, id: string): Promise<Game | undefined> {
+  const memoryGame = games.get(id);
+  if (memoryGame || !database) return memoryGame;
+
+  const row = await database.prepare("SELECT * FROM games WHERE id = ?1").bind(id).first<DatabaseGame>();
+  if (!row) return undefined;
+
+  const game: Game = {
+    id: row.id,
+    playerName: row.player_name,
+    pokemon: JSON.parse(row.pokemon_json) as PokemonFacts,
+    hints: JSON.parse(row.hints_json) as string[],
+    difficulty: row.difficulty as Difficulty,
+    round: row.round,
+    score: row.score,
+    streak: row.streak,
+    startedAt: row.started_at,
+    status: row.status as Game["status"],
+  };
+  games.set(id, game);
+  return game;
+}
+
+async function saveGame(database: D1Database, game: Game, saveScore = false): Promise<void> {
+  await database.prepare(
+    `INSERT INTO games
+      (id, status, difficulty, round_count, score, streak, player_name, pokemon_json,
+       hints_json, started_at, round, created_at, finished_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+     ON CONFLICT(id) DO UPDATE SET
+       status = excluded.status, difficulty = excluded.difficulty,
+       round_count = excluded.round_count, score = excluded.score,
+       streak = excluded.streak, hints_json = excluded.hints_json,
+       round = excluded.round, finished_at = excluded.finished_at`,
+  ).bind(
+    game.id,
+    game.status,
+    game.difficulty,
+    game.round,
+    game.score,
+    game.streak,
+    game.playerName,
+    JSON.stringify(game.pokemon),
+    JSON.stringify(game.hints),
+    game.startedAt,
+    game.round,
+    new Date(game.startedAt).toISOString(),
+    game.status === "finished" ? new Date().toISOString() : null,
+  ).run();
+
+  if (saveScore) {
+    await database.prepare(
+      "INSERT OR REPLACE INTO scores (id, game_id, player_name, score, rounds, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+    ).bind(game.id, game.id, game.playerName, game.score, game.round, new Date().toISOString()).run();
+  }
+}
+
+type DatabaseGame = {
+  id: string;
+  status: string;
+  difficulty: string;
+  score: number;
+  streak: number;
+  player_name: string;
+  pokemon_json: string;
+  hints_json: string;
+  started_at: number;
+  round: number;
+};
 
 function pokemonImageUrl(id: number): string {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
