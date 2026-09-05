@@ -113,11 +113,19 @@ app.post("/games/:id/guess", async (context) => {
     hintsUsed: game.hints.length,
     streak: game.streak,
   });
+  const resolvedPokemon = game.pokemon;
   game.streak = correct ? game.streak + 1 : 0;
   game.score += points;
   game.difficulty = nextDifficulty(game.difficulty, correct, game.hints.length);
-  game.status = "finished";
-  if (context.env.DB) await saveGame(context.env.DB, game, true);
+  const completed = game.round >= 10;
+  game.status = completed ? "finished" : "active";
+  game.round += completed ? 0 : 1;
+  if (!completed) {
+    game.pokemon = await getPokemon(nextPokemonId(game.pokemon.id));
+    game.hints = [];
+    game.startedAt = Date.now();
+  }
+  if (context.env.DB) await saveGame(context.env.DB, game, completed);
 
   return context.json({
     correct,
@@ -125,7 +133,9 @@ app.post("/games/:id/guess", async (context) => {
     score: game.score,
     streak: game.streak,
     difficulty: game.difficulty,
-    pokemon: { id: game.pokemon.id, name: game.pokemon.name, imageUrl: pokemonImageUrl(game.pokemon.id) },
+    round: game.round,
+    finished: completed,
+    pokemon: { id: resolvedPokemon.id, name: resolvedPokemon.name, imageUrl: pokemonImageUrl(resolvedPokemon.id) },
   });
 });
 
@@ -232,6 +242,11 @@ type DatabaseGame = {
 
 function pokemonImageUrl(id: number): string {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+}
+
+function nextPokemonId(currentId: number): number {
+  const currentIndex = pokemonPool.indexOf(currentId);
+  return pokemonPool[(currentIndex + 1) % pokemonPool.length];
 }
 
 async function getPokemon(id: number): Promise<PokemonFacts> {

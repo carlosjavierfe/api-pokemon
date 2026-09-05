@@ -20,6 +20,8 @@ type Result = {
   score: number;
   streak: number;
   difficulty: Game["difficulty"];
+  round: number;
+  finished: boolean;
   pokemon: { id: number; name: string; imageUrl: string };
 };
 
@@ -67,7 +69,7 @@ function App() {
     event.preventDefault(); if (!game) return; setLoading(true); setError("");
     try {
       const response = await request<Result>(`/games/${game.id}/guess`, { method: "POST", body: JSON.stringify({ answer }) });
-      setResult(response); setGame({ ...game, status: "finished", score: response.score, streak: response.streak, difficulty: response.difficulty });
+      setResult(response); setGame({ ...game, status: response.finished ? "finished" : "active", round: response.round, score: response.score, streak: response.streak, difficulty: response.difficulty, hints: [] });
       const ranking = await request<{ scores: Score[] }>("/scores"); setScores(ranking.scores);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Error al validar respuesta."); }
     finally { setLoading(false); }
@@ -93,7 +95,7 @@ function App() {
           </form> : <>
             <div className={`pokemon-frame ${result ? "revealed" : ""}`}><div className="scan-line" /><img src={result?.pokemon.imageUrl ?? game.imageUrl} alt={result ? result.pokemon.name : "Pokemon oculto"} />{!result && <span className="unknown">?</span>}</div>
             <div className="round-meta"><span>Ronda {game.round} / 10</span><span className={`difficulty ${game.difficulty}`}>{game.difficulty}</span></div>
-            {result ? <div className={`result ${result.correct ? "success" : "failure"}`}><p className="eyebrow">{result.correct ? "Acierto confirmado" : "Ronda resuelta"}</p><h2>Era {result.pokemon.name}</h2><strong>{result.correct ? `+${result.points} puntos` : "0 puntos"}</strong><button type="button" onClick={resetGame}>Nueva partida</button></div> : <form className="guess-form" onSubmit={submitGuess}><label htmlFor="answer">¿Cuál es tu respuesta?</label><div className="input-row"><input id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Escribe el nombre..." autoComplete="off" required /><button type="submit" disabled={loading}>{loading ? "..." : "Adivinar"}</button></div></form>}
+            {result ? <div className={`result ${result.correct ? "success" : "failure"}`}><p className="eyebrow">{result.correct ? "Acierto confirmado" : "Ronda resuelta"}</p><h2>Era {result.pokemon.name}</h2><strong>{result.correct ? `+${result.points} puntos` : "0 puntos"}</strong>{result.finished ? <button type="button" onClick={resetGame}>Nueva partida</button> : <button type="button" onClick={() => { setResult(null); setAnswer(""); }}>Siguiente ronda</button>}</div> : <form className="guess-form" onSubmit={submitGuess}><label htmlFor="answer">¿Cuál es tu respuesta?</label><div className="input-row"><input id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Escribe el nombre..." autoComplete="off" required /><button type="submit" disabled={loading}>{loading ? "..." : "Adivinar"}</button></div></form>}
           </>}
           {error && <p className="error-message" role="alert">{error}</p>}
         </section>

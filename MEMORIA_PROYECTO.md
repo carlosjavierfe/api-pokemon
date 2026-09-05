@@ -19,6 +19,7 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - CORS controlado por `WEB_ORIGIN` y localhost.
 - OpenAPI disponible en `/api/openapi.json`; Swagger UI en `/api/docs`.
 - Pruebas de integración API cubren CORS autorizado/no autorizado y el flujo partida -> pista -> respuesta -> ranking.
+- Partida MVP implementada con 10 rondas; el ranking se guarda solo al finalizar la ronda 10.
 
 ## Decisiones confirmadas
 
@@ -143,8 +144,8 @@ Hasta ahora la configuración de agentes está creada, pero las tareas han sido 
 
 ## Próximo orden de implementación
 
-1. Añadir pruebas de integración visual/API.
-2. Ejecutar pruebas, documentar y desplegar.
+1. Ejecutar pruebas finales de integración visual/API.
+2. Crear D1 real, configurar `database_id` y desplegar.
 
 ## Comandos
 

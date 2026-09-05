@@ -45,8 +45,14 @@
 - Si no existe binding `DB`, el Worker usa memoria para pruebas locales.
 - En producción el binding D1 es obligatorio y debe verificarse antes del despliegue.
 
+## ADR-008: Partida de diez rondas
+
+- Estado: aceptada.
+- La respuesta intermedia mantiene la partida activa, limpia las pistas y genera el siguiente Pokemon.
+- La ronda 10 marca la partida como finalizada y persiste el score en el ranking.
+- El frontend ofrece continuar entre rondas y solo muestra nueva partida al terminar.
+
 ## Riesgos abiertos
 
-- La API actual resuelve una ronda y marca la partida como terminada; falta completar el flujo de 10 rondas.
 - Debe crearse la base D1 real y reemplazarse el placeholder `database_id`.
 - Deben probarse frontend y API en una URL pública.

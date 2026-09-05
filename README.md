@@ -87,4 +87,4 @@ Incluye partida, pistas deterministas, puntuación, ranking, API propia, persist
 
 ## Estado
 
-El dominio, API P0, frontend, CORS, OpenAPI y pruebas están implementados. Pendientes: completar el modo de 10 rondas, crear la D1 real, desplegar y probar la URL pública.
+El dominio, API P0, frontend, CORS, OpenAPI y modo de 10 rondas están implementados. Pendientes: crear la D1 real, desplegar y probar la URL pública.

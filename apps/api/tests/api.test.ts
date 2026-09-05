@@ -55,7 +55,7 @@ describe("game API", () => {
     expect(response.status).toBe(400);
   });
 
-  it("runs the API game flow from creation to ranking", async () => {
+  it("runs the API game flow and advances to the next round", async () => {
     const gameResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Misty" }) }, env);
     const game = await gameResponse.json() as { id: string };
 
@@ -67,9 +67,38 @@ describe("game API", () => {
       body: JSON.stringify({ answer: "pikachu" }),
     }, env);
     expect(guessResponse.status).toBe(200);
+    const guess = await guessResponse.json() as { finished: boolean; round: number; pokemon: { name: string } };
+    expect(guess.finished).toBe(false);
+    expect(guess.round).toBe(2);
+    expect(guess.pokemon.name).toBe("pikachu");
+
+    const nextGameResponse = await app.request(`/api/games/${game.id}`, {}, env);
+    const nextGame = await nextGameResponse.json() as { status: string; round: number; hints: string[] };
+    expect(nextGame.status).toBe("active");
+    expect(nextGame.round).toBe(2);
+    expect(nextGame.hints).toHaveLength(0);
 
     const scoresResponse = await app.request("/api/scores", {}, env);
     const scores = await scoresResponse.json() as { scores: Array<{ playerName: string }> };
-    expect(scores.scores.some((score) => score.playerName === "Misty")).toBe(true);
+    expect(scores.scores.some((score) => score.playerName === "Misty")).toBe(false);
+  });
+
+  it("finishes only after the tenth round", async () => {
+    const gameResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Brock" }) }, env);
+    const game = await gameResponse.json() as { id: string };
+    let finalResult: { finished: boolean; round: number } | undefined;
+
+    for (let round = 1; round <= 10; round += 1) {
+      const response = await app.request(`/api/games/${game.id}/guess`, {
+        method: "POST",
+        body: JSON.stringify({ answer: "pikachu" }),
+      }, env);
+      finalResult = await response.json() as { finished: boolean; round: number };
+    }
+
+    expect(finalResult).toMatchObject({ finished: true, round: 10 });
+    const scoresResponse = await app.request("/api/scores", {}, env);
+    const scores = await scoresResponse.json() as { scores: Array<{ playerName: string; rounds: number }> };
+    expect(scores.scores.find((score) => score.playerName === "Brock")?.rounds).toBe(10);
   });
 });
