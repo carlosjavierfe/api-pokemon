@@ -12,6 +12,7 @@ type Game = {
   streak: number;
   status: "active" | "finished";
   hints: string[];
+  choices: string[];
   imageUrl: string;
   startedAt: number;
 };
@@ -27,7 +28,8 @@ type Result = {
   timedOut: boolean;
   scoreBreakdown: { basePoints: number; speedBonus: number; hintPenalty: number; streakMultiplier: number; totalPoints: number };
   pokemon: { id: number; name: string; imageUrl: string };
-  nextRound: { round: number; startedAt: number; imageUrl: string } | null;
+  nextRound: { round: number; startedAt: number; imageUrl: string; choices: string[] } | null;
+  choices: string[];
 };
 
 type Score = { playerName: string; score: number; rounds: number };
@@ -44,6 +46,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(ROUND_TIME_LIMIT_SECONDS);
+  const [imageReady, setImageReady] = useState(false);
 
   async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${apiUrl}${path}`, {
@@ -61,6 +64,7 @@ function App() {
       const created = await request<Game>("/games", { method: "POST", body: JSON.stringify({ playerName, mode }) });
       setGame(created); setResult(null); setAnswer("");
       setSecondsLeft(ROUND_TIME_LIMIT_SECONDS);
+      setImageReady(false);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Error al iniciar partida."); }
     finally { setLoading(false); }
   }
@@ -82,7 +86,7 @@ function App() {
     if (!game || loading || result) return; setLoading(true); setError("");
     try {
       const response = await request<Result>(`/games/${game.id}/guess`, { method: "POST", body: JSON.stringify({ answer: value }) });
-      setResult(response); setGame({ ...game, status: response.finished ? "finished" : "active", round: response.round, score: response.score, streak: response.streak, difficulty: response.difficulty, hints: [], imageUrl: response.nextRound?.imageUrl ?? game.imageUrl, startedAt: response.nextRound?.startedAt ?? game.startedAt });
+      setResult(response); setGame({ ...game, status: response.finished ? "finished" : "active", round: response.round, score: response.score, streak: response.streak, difficulty: response.difficulty, hints: [], choices: response.nextRound?.choices ?? game.choices, imageUrl: response.nextRound?.imageUrl ?? game.imageUrl, startedAt: response.nextRound?.startedAt ?? game.startedAt });
       const ranking = await request<{ scores: Score[] }>("/scores"); setScores(ranking.scores);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Error al validar respuesta."); }
     finally { setLoading(false); }
@@ -121,10 +125,10 @@ function App() {
             <label htmlFor="playerName">Nombre de entrenador</label>
             <div className="mode-selector" role="group" aria-label="Modo de juego"><button type="button" className={mode === "standard" ? "selected" : ""} onClick={() => setMode("standard")}>10 rondas</button><button type="button" className={mode === "streak" ? "selected" : ""} onClick={() => setMode("streak")}>Racha infinita</button></div><div className="input-row"><input id="playerName" value={playerName} onChange={(event) => setPlayerName(event.target.value)} maxLength={40} placeholder="Ej. Ash" required /><button type="submit" disabled={loading}>{loading ? "Cargando..." : "Comenzar"}</button></div>
           </form> : <>
-            <div className={`pokemon-frame ${result ? "revealed" : ""}`}><div className="scan-line" /><img src={result ? result.pokemon.imageUrl : game.imageUrl} alt={result ? result.pokemon.name : "Pokemon oculto"} />{!result && <span className="unknown">?</span>}</div>
+            <div className={`pokemon-frame ${result ? "revealed" : ""} ${!result && !imageReady ? "loading-image" : ""}`}><div className="scan-line" /><img key={result ? result.pokemon.imageUrl : game.imageUrl} src={result ? result.pokemon.imageUrl : game.imageUrl} onLoad={() => setImageReady(true)} alt={result ? result.pokemon.name : "Pokemon oculto"} />{!result && !imageReady && <span className="image-loading">Cargando silueta...</span>}{!result && imageReady && <span className="unknown">?</span>}</div>
             <div className="round-meta"><span>{game.mode === "streak" ? `Racha ${game.round}` : `Ronda ${game.round} / 10`}</span><span className={`difficulty ${game.difficulty}`}>{game.difficulty}</span></div>
             {!result && <div className={`timer-panel ${secondsLeft <= 5 ? "urgent" : ""}`} aria-live="polite"><span>Tiempo restante</span><strong>00:{String(secondsLeft).padStart(2, "0")}</strong></div>}
-            {result ? <div className={`result ${result.correct ? "success" : "failure"}`}><p className="eyebrow">{result.correct ? "Acierto confirmado" : result.timedOut ? "Tiempo agotado" : "Ronda resuelta"}</p><h2>Era {result.pokemon.name}</h2><div className="score-breakdown"><span>Base <b>{result.scoreBreakdown.basePoints}</b></span><span>Velocidad <b>+{result.scoreBreakdown.speedBonus}</b></span><span>Pistas <b>-{result.scoreBreakdown.hintPenalty}</b></span><span>Multiplicador <b>x{result.scoreBreakdown.streakMultiplier.toFixed(1)}</b></span><strong>Total ronda <b>{result.scoreBreakdown.totalPoints}</b></strong></div><p className="total-score">Total partida: <b>{result.score}</b> pts</p>{result.finished ? <button type="button" onClick={resetGame}>Nueva partida</button> : <button type="button" onClick={() => { setResult(null); setAnswer(""); setSecondsLeft(ROUND_TIME_LIMIT_SECONDS); }}>Siguiente ronda</button>}</div> : <form className="guess-form" onSubmit={submitGuess}><label htmlFor="answer">¿Cuál es tu respuesta?</label><div className="input-row"><input id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Escribe el nombre..." autoComplete="off" required /><button type="submit" disabled={loading}>{loading ? "..." : "Adivinar"}</button></div></form>}
+            {result ? <div className={`result ${result.correct ? "success" : "failure"}`}><p className="eyebrow">{result.correct ? "Acierto confirmado" : result.timedOut ? "Tiempo agotado" : "Ronda resuelta"}</p><h2>Era {result.pokemon.name}</h2><div className="score-breakdown"><span>Base <b>{result.scoreBreakdown.basePoints}</b></span><span>Velocidad <b>+{result.scoreBreakdown.speedBonus}</b></span><span>Pistas <b>-{result.scoreBreakdown.hintPenalty}</b></span><span>Multiplicador <b>x{result.scoreBreakdown.streakMultiplier.toFixed(1)}</b></span><strong>Total ronda <b>{result.scoreBreakdown.totalPoints}</b></strong></div><p className="total-score">Total partida: <b>{result.score}</b> pts</p>{result.finished ? <button type="button" onClick={resetGame}>Nueva partida</button> : <button type="button" onClick={() => { setResult(null); setAnswer(""); setSecondsLeft(ROUND_TIME_LIMIT_SECONDS); setImageReady(false); }}>Siguiente ronda</button>}</div> : <form className="guess-form" onSubmit={submitGuess}><label htmlFor="answer">¿Cuál es tu respuesta?</label><div className="choice-list">{game.choices.map((choice) => <button key={choice} type="button" disabled={loading || !imageReady} onClick={() => { setAnswer(choice); void resolveGuess(choice); }}>{choice}</button>)}</div><p className="choice-divider">o escribe tu respuesta</p><div className="input-row"><input id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Escribe el nombre..." autoComplete="off" /><button type="submit" disabled={loading}>{loading ? "..." : "Adivinar"}</button></div></form>}
           </>}
           {error && <p className="error-message" role="alert">{error}</p>}
         </section>

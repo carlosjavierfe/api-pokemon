@@ -1,0 +1,1 @@
+ALTER TABLE games ADD COLUMN choices_json TEXT NOT NULL DEFAULT '[]';

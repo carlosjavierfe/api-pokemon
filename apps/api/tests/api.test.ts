@@ -58,6 +58,8 @@ describe("game API", () => {
     expect(response.status).toBe(201);
     expect(body).not.toHaveProperty("pokemon");
     expect(body).toHaveProperty("imageUrl");
+    expect(body.choices).toHaveLength(2);
+    expect(new Set(body.choices).size).toBe(2);
   });
 
   it("rejects an invalid player name", async () => {

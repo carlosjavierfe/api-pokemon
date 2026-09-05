@@ -66,6 +66,13 @@
 - `streak` termina en el primer fallo o timeout y conserva la racha acumulada.
 - El modo se persiste en D1 mediante `migrations/0002_game_mode.sql`.
 
+## ADR-011: Opciones múltiples
+
+- Estado: aceptada.
+- Cada ronda muestra dos opciones: respuesta correcta y distractor.
+- El backend conserva la respuesta correcta y valida la selección.
+- Las opciones activas se persisten en D1 mediante `migrations/0003_game_choices.sql`.
+
 ## Riesgos abiertos
 
 - Deben probarse frontend y API en una URL pública.

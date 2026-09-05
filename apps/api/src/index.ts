@@ -14,6 +14,7 @@ type Game = GameState & {
   playerName: string;
   mode: "standard" | "streak";
   pokemon: PokemonFacts;
+  choices: string[];
   hints: string[];
   startedAt: number;
   status: "active" | "finished";
@@ -63,11 +64,13 @@ app.post("/games", async (context) => {
 
   const pokemonId = randomPokemonId();
   const pokemon = await getPokemon(pokemonId);
+  const choices = await buildChoices(pokemon);
   const game: Game = {
     id: crypto.randomUUID(),
     playerName,
     mode: payload?.mode === "streak" ? "streak" : "standard",
     pokemon,
+    choices,
     hints: [],
     difficulty: "easy",
     round: 1,
@@ -127,6 +130,7 @@ app.post("/games/:id/guess", async (context) => {
   game.round += completed ? 0 : 1;
   if (!completed) {
     game.pokemon = await getPokemon(nextPokemonId(game.pokemon.id));
+    game.choices = await buildChoices(game.pokemon);
     game.hints = [];
     game.startedAt = Date.now();
   }
@@ -143,7 +147,8 @@ app.post("/games/:id/guess", async (context) => {
     timedOut,
     scoreBreakdown,
     pokemon: { id: resolvedPokemon.id, name: resolvedPokemon.name, imageUrl: pokemonImageUrl(resolvedPokemon.id) },
-    nextRound: completed ? null : { round: game.round, startedAt: game.startedAt, imageUrl: pokemonImageUrl(game.pokemon.id) },
+    nextRound: completed ? null : { round: game.round, startedAt: game.startedAt, imageUrl: pokemonImageUrl(game.pokemon.id), choices: game.choices },
+    choices: game.choices,
   });
 });
 
@@ -175,6 +180,7 @@ function publicGame(game: Game) {
     streak: game.streak,
     status: game.status,
     hints: game.hints,
+    choices: game.choices,
     imageUrl: pokemonImageUrl(game.pokemon.id),
     startedAt: game.startedAt,
   };
@@ -193,6 +199,7 @@ async function findGame(database: D1Database | undefined, id: string): Promise<G
     mode: row.mode as Game["mode"],
     pokemon: JSON.parse(row.pokemon_json) as PokemonFacts,
     hints: JSON.parse(row.hints_json) as string[],
+    choices: JSON.parse(row.choices_json) as string[],
     difficulty: row.difficulty as Difficulty,
     round: row.round,
     score: row.score,
@@ -208,14 +215,14 @@ async function saveGame(database: D1Database, game: Game, saveScore = false): Pr
   await database.prepare(
     `INSERT INTO games
       (id, status, difficulty, round_count, score, streak, player_name, pokemon_json,
-       hints_json, started_at, round, created_at, finished_at, mode)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+      hints_json, started_at, round, created_at, finished_at, mode, choices_json)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
      ON CONFLICT(id) DO UPDATE SET
        status = excluded.status, difficulty = excluded.difficulty,
        round_count = excluded.round_count, score = excluded.score,
        streak = excluded.streak, hints_json = excluded.hints_json,
-      round = excluded.round, finished_at = excluded.finished_at,
-      mode = excluded.mode`,
+       round = excluded.round, finished_at = excluded.finished_at,
+       mode = excluded.mode, choices_json = excluded.choices_json`,
   ).bind(
     game.id,
     game.status,
@@ -231,6 +238,7 @@ async function saveGame(database: D1Database, game: Game, saveScore = false): Pr
     new Date(game.startedAt).toISOString(),
     game.status === "finished" ? new Date().toISOString() : null,
     game.mode,
+    JSON.stringify(game.choices),
   ).run();
 
   if (saveScore) {
@@ -250,6 +258,7 @@ type DatabaseGame = {
   mode: string;
   pokemon_json: string;
   hints_json: string;
+  choices_json: string;
   started_at: number;
   round: number;
 };
@@ -289,6 +298,13 @@ async function getPokemon(id: number): Promise<PokemonFacts> {
     weight: data.weight,
     baseExperience: data.base_experience,
   };
+}
+
+async function buildChoices(correctPokemon: PokemonFacts): Promise<string[]> {
+  const distractor = await getPokemon(nextPokemonId(correctPokemon.id));
+  return Math.random() < 0.5
+    ? [correctPokemon.name, distractor.name]
+    : [distractor.name, correctPokemon.name];
 }
 
 async function readJson<T>(request: { json: <Body = unknown>() => Promise<Body> }): Promise<T | null> {
