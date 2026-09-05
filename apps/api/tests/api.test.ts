@@ -1,15 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import app from "../src";
 
-vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-  id: 25,
-  name: "pikachu",
-  types: [{ type: { name: "electric" } }],
-  abilities: [{ ability: { name: "static" } }],
+vi.spyOn(Math, "random").mockReturnValue(0);
+vi.stubGlobal("fetch", vi.fn(async (request: RequestInfo | URL) => {
+  const id = Number(String(request).split("/").pop());
+  const pokemon = id === 1
+    ? { id: 1, name: "bulbasaur", type: "grass", ability: "overgrow" }
+    : { id: 25, name: "pikachu", type: "electric", ability: "static" };
+
+  return new Response(JSON.stringify({
+  id: pokemon.id,
+  name: pokemon.name,
+  types: [{ type: { name: pokemon.type } }],
+  abilities: [{ ability: { name: pokemon.ability } }],
   height: 4,
   weight: 60,
   base_experience: 112,
-}), { status: 200, headers: { "Content-Type": "application/json" } })));
+}), { status: 200, headers: { "Content-Type": "application/json" } });
+}));
 
 const env = { ENVIRONMENT: "test" };
 
@@ -67,10 +75,11 @@ describe("game API", () => {
       body: JSON.stringify({ answer: "pikachu" }),
     }, env);
     expect(guessResponse.status).toBe(200);
-    const guess = await guessResponse.json() as { finished: boolean; round: number; pokemon: { name: string } };
+    const guess = await guessResponse.json() as { finished: boolean; round: number; pokemon: { name: string }; nextRound: { round: number; imageUrl: string } | null };
     expect(guess.finished).toBe(false);
     expect(guess.round).toBe(2);
     expect(guess.pokemon.name).toBe("pikachu");
+    expect(guess.nextRound).toMatchObject({ round: 2, imageUrl: expect.stringContaining("/1.png") });
 
     const nextGameResponse = await app.request(`/api/games/${game.id}`, {}, env);
     const nextGame = await nextGameResponse.json() as { status: string; round: number; hints: string[] };

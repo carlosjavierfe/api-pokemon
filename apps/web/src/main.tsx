@@ -23,6 +23,7 @@ type Result = {
   round: number;
   finished: boolean;
   pokemon: { id: number; name: string; imageUrl: string };
+  nextRound: { round: number; imageUrl: string } | null;
 };
 
 type Score = { playerName: string; score: number; rounds: number };
@@ -69,7 +70,7 @@ function App() {
     event.preventDefault(); if (!game) return; setLoading(true); setError("");
     try {
       const response = await request<Result>(`/games/${game.id}/guess`, { method: "POST", body: JSON.stringify({ answer }) });
-      setResult(response); setGame({ ...game, status: response.finished ? "finished" : "active", round: response.round, score: response.score, streak: response.streak, difficulty: response.difficulty, hints: [] });
+      setResult(response); setGame({ ...game, status: response.finished ? "finished" : "active", round: response.round, score: response.score, streak: response.streak, difficulty: response.difficulty, hints: [], imageUrl: response.nextRound?.imageUrl ?? game.imageUrl });
       const ranking = await request<{ scores: Score[] }>("/scores"); setScores(ranking.scores);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Error al validar respuesta."); }
     finally { setLoading(false); }

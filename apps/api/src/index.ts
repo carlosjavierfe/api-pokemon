@@ -136,6 +136,7 @@ app.post("/games/:id/guess", async (context) => {
     round: game.round,
     finished: completed,
     pokemon: { id: resolvedPokemon.id, name: resolvedPokemon.name, imageUrl: pokemonImageUrl(resolvedPokemon.id) },
+    nextRound: completed ? null : { round: game.round, imageUrl: pokemonImageUrl(game.pokemon.id) },
   });
 });
 
