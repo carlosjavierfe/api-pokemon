@@ -13,7 +13,7 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - Dominio puro implementado y probado.
 - API P0 implementada con almacenamiento en memoria para desarrollo local.
 - Persistencia D1 integrada mediante binding `DB`; sin binding se usa memoria para tests locales.
-- `database_id` real de Cloudflare aún debe configurarse antes del despliegue.
+- D1 de producción creada y migración `0001_initial.sql` aplicada; `database_id` configurado en Wrangler.
 - Frontend jugable implementado con cliente API, pistas, respuesta, resultado y ranking.
 - Proxy Vite configurado para `/api` local.
 - CORS controlado por `WEB_ORIGIN` y localhost.
@@ -145,7 +145,7 @@ Hasta ahora la configuración de agentes está creada, pero las tareas han sido 
 ## Próximo orden de implementación
 
 1. Ejecutar pruebas finales de integración visual/API.
-2. Crear D1 real, configurar `database_id` y desplegar.
+2. Configurar variables de producción y desplegar.
 
 ## Comandos
 

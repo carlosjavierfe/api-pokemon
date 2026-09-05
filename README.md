@@ -71,9 +71,8 @@ El frontend no consulta PokéAPI directamente. La respuesta correcta y el cálcu
 La migración está en `migrations/0001_initial.sql`. Antes de desplegar hay que:
 
 1. Crear una base D1.
-2. Sustituir `database_id` en `apps/api/wrangler.toml`.
-3. Aplicar la migración con Wrangler.
-4. Configurar `WEB_ORIGIN` con el dominio de Cloudflare Pages.
+2. Aplicar la migración con Wrangler.
+3. Configurar `WEB_ORIGIN` con el dominio de Cloudflare Pages.
 
 Sin binding D1, el Worker usa memoria para desarrollo y pruebas locales.
 
@@ -87,4 +86,4 @@ Incluye partida, pistas deterministas, puntuación, ranking, API propia, persist
 
 ## Estado
 
-El dominio, API P0, frontend, CORS, OpenAPI y modo de 10 rondas están implementados. Pendientes: crear la D1 real, desplegar y probar la URL pública.
+El dominio, API P0, frontend, CORS, OpenAPI, modo de 10 rondas y D1 real están implementados. Pendientes: desplegar y probar la URL pública.

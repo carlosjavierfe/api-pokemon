@@ -9,5 +9,5 @@ WEB_ORIGIN = "http://localhost:5173"
 [[d1_databases]]
 binding = "DB"
 database_name = "api-pokemon-db"
-database_id = "replace-with-cloudflare-d1-id"
+database_id = "c63df969-1c0d-4a2d-9aeb-dc9d3aa38511"
 migrations_dir = "../../migrations"

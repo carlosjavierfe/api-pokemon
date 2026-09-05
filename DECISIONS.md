@@ -12,7 +12,7 @@
 - Estado: aceptada.
 - Pages sirve el frontend, Worker expone la API y D1 persiste partidas/ranking.
 - Es suficiente para un MVP gratuito y evita servidores persistentes.
-- `database_id` de producción queda pendiente de configurar.
+- D1 de producción creada como `api-pokemon-db`; migración inicial aplicada.
 
 ## ADR-003: Dominio puro compartido
 
@@ -54,5 +54,4 @@
 
 ## Riesgos abiertos
 
-- Debe crearse la base D1 real y reemplazarse el placeholder `database_id`.
 - Deben probarse frontend y API en una URL pública.
