@@ -18,7 +18,8 @@ type Game = GameState & {
   status: "active" | "finished";
 };
 
-const pokemonPool = [25, 1, 4, 7];
+export const ROUND_TIME_LIMIT_SECONDS = 30;
+const pokemonPool = Array.from({ length: 151 }, (_, index) => index + 1);
 
 const games = new Map<string, Game>();
 
@@ -59,7 +60,7 @@ app.post("/games", async (context) => {
     return context.json({ error: "playerName is required and must be 40 characters or fewer" }, 400);
   }
 
-  const pokemonId = pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
+  const pokemonId = randomPokemonId();
   const pokemon = await getPokemon(pokemonId);
   const game: Game = {
     id: crypto.randomUUID(),
@@ -103,10 +104,11 @@ app.post("/games/:id/guess", async (context) => {
 
   const payload = await readJson<{ answer?: string }>(context.req);
   const answer = payload?.answer?.trim().toLowerCase();
-  if (!answer || answer.length > 40) return context.json({ error: "answer is required" }, 400);
+  if (answer && answer.length > 40) return context.json({ error: "answer is too long" }, 400);
 
-  const correct = answer === game.pokemon.name.toLowerCase();
   const elapsedSeconds = (Date.now() - game.startedAt) / 1000;
+  const timedOut = elapsedSeconds >= ROUND_TIME_LIMIT_SECONDS;
+  const correct = !timedOut && answer === game.pokemon.name.toLowerCase();
   const points = calculateRoundPoints({
     correct,
     elapsedSeconds,
@@ -135,8 +137,9 @@ app.post("/games/:id/guess", async (context) => {
     difficulty: game.difficulty,
     round: game.round,
     finished: completed,
+    timedOut,
     pokemon: { id: resolvedPokemon.id, name: resolvedPokemon.name, imageUrl: pokemonImageUrl(resolvedPokemon.id) },
-    nextRound: completed ? null : { round: game.round, imageUrl: pokemonImageUrl(game.pokemon.id) },
+    nextRound: completed ? null : { round: game.round, startedAt: game.startedAt, imageUrl: pokemonImageUrl(game.pokemon.id) },
   });
 });
 
@@ -168,6 +171,7 @@ function publicGame(game: Game) {
     status: game.status,
     hints: game.hints,
     imageUrl: pokemonImageUrl(game.pokemon.id),
+    startedAt: game.startedAt,
   };
 }
 
@@ -246,8 +250,12 @@ function pokemonImageUrl(id: number): string {
 }
 
 function nextPokemonId(currentId: number): number {
-  const currentIndex = pokemonPool.indexOf(currentId);
-  return pokemonPool[(currentIndex + 1) % pokemonPool.length];
+  const candidates = pokemonPool.filter((id) => id !== currentId);
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function randomPokemonId(): number {
+  return pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
 }
 
 async function getPokemon(id: number): Promise<PokemonFacts> {

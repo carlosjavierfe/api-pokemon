@@ -21,6 +21,8 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - Pruebas de integración API cubren CORS autorizado/no autorizado y el flujo partida -> pista -> respuesta -> ranking.
 - Partida MVP implementada con 10 rondas; el ranking se guarda solo al finalizar la ronda 10.
 - Imagen de la siguiente ronda sincronizada mediante `nextRound.imageUrl`; se evita reutilizar la silueta anterior.
+- Pool ampliado a los 151 Pokemon originales con selección aleatoria sin repetición inmediata.
+- Límite de 30 segundos por ronda validado en backend y mostrado con cuenta atrás en frontend.
 
 ## Decisiones confirmadas
 

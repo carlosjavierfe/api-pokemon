@@ -52,6 +52,13 @@
 - La ronda 10 marca la partida como finalizada y persiste el score en el ranking.
 - El frontend ofrece continuar entre rondas y solo muestra nueva partida al terminar.
 
+## ADR-009: Tiempo y selección de rondas
+
+- Estado: aceptada.
+- Cada ronda tiene un límite de 30 segundos; el Worker decide si expiró.
+- El frontend muestra la cuenta atrás y envía una resolución vacía al llegar a cero.
+- El pool inicial contiene los 151 Pokemon originales y no repite el ID inmediatamente anterior.
+
 ## Riesgos abiertos
 
 - Deben probarse frontend y API en una URL pública.

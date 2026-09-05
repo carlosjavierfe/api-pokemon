@@ -1,4 +1,4 @@
-import { FormEvent, StrictMode, useState } from "react";
+import { FormEvent, StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
@@ -12,6 +12,7 @@ type Game = {
   status: "active" | "finished";
   hints: string[];
   imageUrl: string;
+  startedAt: number;
 };
 
 type Result = {
@@ -22,12 +23,14 @@ type Result = {
   difficulty: Game["difficulty"];
   round: number;
   finished: boolean;
+  timedOut: boolean;
   pokemon: { id: number; name: string; imageUrl: string };
-  nextRound: { round: number; imageUrl: string } | null;
+  nextRound: { round: number; startedAt: number; imageUrl: string } | null;
 };
 
 type Score = { playerName: string; score: number; rounds: number };
 const apiUrl = (import.meta.env.VITE_API_URL ?? "/api").replace(/\/$/, "");
+const ROUND_TIME_LIMIT_SECONDS = 30;
 
 function App() {
   const [playerName, setPlayerName] = useState("");
@@ -37,6 +40,7 @@ function App() {
   const [scores, setScores] = useState<Score[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(ROUND_TIME_LIMIT_SECONDS);
 
   async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${apiUrl}${path}`, {
@@ -53,6 +57,7 @@ function App() {
     try {
       const created = await request<Game>("/games", { method: "POST", body: JSON.stringify({ playerName }) });
       setGame(created); setResult(null); setAnswer("");
+      setSecondsLeft(ROUND_TIME_LIMIT_SECONDS);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Error al iniciar partida."); }
     finally { setLoading(false); }
   }
@@ -67,14 +72,33 @@ function App() {
   }
 
   async function submitGuess(event: FormEvent) {
-    event.preventDefault(); if (!game) return; setLoading(true); setError("");
+    event.preventDefault(); await resolveGuess(answer);
+  }
+
+  async function resolveGuess(value: string) {
+    if (!game || loading || result) return; setLoading(true); setError("");
     try {
-      const response = await request<Result>(`/games/${game.id}/guess`, { method: "POST", body: JSON.stringify({ answer }) });
-      setResult(response); setGame({ ...game, status: response.finished ? "finished" : "active", round: response.round, score: response.score, streak: response.streak, difficulty: response.difficulty, hints: [], imageUrl: response.nextRound?.imageUrl ?? game.imageUrl });
+      const response = await request<Result>(`/games/${game.id}/guess`, { method: "POST", body: JSON.stringify({ answer: value }) });
+      setResult(response); setGame({ ...game, status: response.finished ? "finished" : "active", round: response.round, score: response.score, streak: response.streak, difficulty: response.difficulty, hints: [], imageUrl: response.nextRound?.imageUrl ?? game.imageUrl, startedAt: response.nextRound?.startedAt ?? game.startedAt });
       const ranking = await request<{ scores: Score[] }>("/scores"); setScores(ranking.scores);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Error al validar respuesta."); }
     finally { setLoading(false); }
   }
+
+  useEffect(() => {
+    if (!game || result) return;
+    const updateTimer = () => {
+      const elapsed = Math.floor((Date.now() - game.startedAt) / 1000);
+      setSecondsLeft(Math.max(0, ROUND_TIME_LIMIT_SECONDS - elapsed));
+    };
+    updateTimer();
+    const timer = window.setInterval(updateTimer, 250);
+    return () => window.clearInterval(timer);
+  }, [game, result]);
+
+  useEffect(() => {
+    if (game && !result && secondsLeft === 0) void resolveGuess("");
+  }, [secondsLeft, game, result]);
 
   function resetGame() { setGame(null); setResult(null); setAnswer(""); setError(""); }
 
@@ -95,7 +119,7 @@ function App() {
             <div className="input-row"><input id="playerName" value={playerName} onChange={(event) => setPlayerName(event.target.value)} maxLength={40} placeholder="Ej. Ash" required /><button type="submit" disabled={loading}>{loading ? "Cargando..." : "Comenzar"}</button></div>
           </form> : <>
             <div className={`pokemon-frame ${result ? "revealed" : ""}`}><div className="scan-line" /><img src={result?.pokemon.imageUrl ?? game.imageUrl} alt={result ? result.pokemon.name : "Pokemon oculto"} />{!result && <span className="unknown">?</span>}</div>
-            <div className="round-meta"><span>Ronda {game.round} / 10</span><span className={`difficulty ${game.difficulty}`}>{game.difficulty}</span></div>
+            <div className="round-meta"><span>Ronda {game.round} / 10</span><span className={`timer ${secondsLeft <= 5 ? "urgent" : ""}`}>00:{String(secondsLeft).padStart(2, "0")}</span><span className={`difficulty ${game.difficulty}`}>{game.difficulty}</span></div>
             {result ? <div className={`result ${result.correct ? "success" : "failure"}`}><p className="eyebrow">{result.correct ? "Acierto confirmado" : "Ronda resuelta"}</p><h2>Era {result.pokemon.name}</h2><strong>{result.correct ? `+${result.points} puntos` : "0 puntos"}</strong>{result.finished ? <button type="button" onClick={resetGame}>Nueva partida</button> : <button type="button" onClick={() => { setResult(null); setAnswer(""); }}>Siguiente ronda</button>}</div> : <form className="guess-form" onSubmit={submitGuess}><label htmlFor="answer">¿Cuál es tu respuesta?</label><div className="input-row"><input id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Escribe el nombre..." autoComplete="off" required /><button type="submit" disabled={loading}>{loading ? "..." : "Adivinar"}</button></div></form>}
           </>}
           {error && <p className="error-message" role="alert">{error}</p>}

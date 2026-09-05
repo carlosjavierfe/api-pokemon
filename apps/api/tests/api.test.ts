@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import app from "../src";
+import app, { ROUND_TIME_LIMIT_SECONDS } from "../src";
 
 vi.spyOn(Math, "random").mockReturnValue(0);
 vi.stubGlobal("fetch", vi.fn(async (request: RequestInfo | URL) => {
   const id = Number(String(request).split("/").pop());
   const pokemon = id === 1
-    ? { id: 1, name: "bulbasaur", type: "grass", ability: "overgrow" }
-    : { id: 25, name: "pikachu", type: "electric", ability: "static" };
+    ? { id: 1, name: "pikachu", type: "electric", ability: "static" }
+    : { id, name: "bulbasaur", type: "grass", ability: "overgrow" };
 
   return new Response(JSON.stringify({
   id: pokemon.id,
@@ -63,6 +63,20 @@ describe("game API", () => {
     expect(response.status).toBe(400);
   });
 
+  it("rejects a guess after the round time limit", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    const gameResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Brock" }) }, env);
+    const game = await gameResponse.json() as { id: string };
+
+    vi.setSystemTime(new Date(`2026-01-01T00:00:${String(ROUND_TIME_LIMIT_SECONDS).padStart(2, "0")}.000Z`));
+    const response = await app.request(`/api/games/${game.id}/guess`, { method: "POST", body: JSON.stringify({ answer: "pikachu" }) }, env);
+    const result = await response.json() as { correct: boolean; points: number; timedOut: boolean };
+
+    expect(result).toMatchObject({ correct: false, points: 0, timedOut: true });
+    vi.useRealTimers();
+  });
+
   it("runs the API game flow and advances to the next round", async () => {
     const gameResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Misty" }) }, env);
     const game = await gameResponse.json() as { id: string };
@@ -79,7 +93,7 @@ describe("game API", () => {
     expect(guess.finished).toBe(false);
     expect(guess.round).toBe(2);
     expect(guess.pokemon.name).toBe("pikachu");
-    expect(guess.nextRound).toMatchObject({ round: 2, imageUrl: expect.stringContaining("/1.png") });
+    expect(guess.nextRound).toMatchObject({ round: 2, imageUrl: expect.stringContaining("/2.png") });
 
     const nextGameResponse = await app.request(`/api/games/${game.id}`, {}, env);
     const nextGame = await nextGameResponse.json() as { status: string; round: number; hints: string[] };
