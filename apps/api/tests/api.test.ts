@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import app, { ROUND_TIME_LIMIT_SECONDS } from "../src";
+import app from "../src";
+
+const ROUND_TIME_LIMIT_SECONDS = 30;
 
 vi.spyOn(Math, "random").mockReturnValue(0);
 vi.stubGlobal("fetch", vi.fn(async (request: RequestInfo | URL) => {

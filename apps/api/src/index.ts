@@ -19,7 +19,7 @@ type Game = GameState & {
   status: "active" | "finished";
 };
 
-export const ROUND_TIME_LIMIT_SECONDS = 30;
+const ROUND_TIME_LIMIT_SECONDS = 30;
 const pokemonPool = Array.from({ length: 151 }, (_, index) => index + 1);
 
 const games = new Map<string, Game>();
