@@ -10,6 +10,9 @@ body { margin: 0; min-width: 320px; background: #e9edf0; }
 .hero-panel { min-height: 620px; display: flex; flex-direction: column; justify-content: center; } .section-label { color: #6f7c83; margin-bottom: 22px; } .section-label span { color: #da3d35; margin-right: 10px; }
 .start-form { max-width: 640px; } .start-form h2 { font-size: clamp(2.4rem, 6vw, 5.5rem); line-height: .98; letter-spacing: -.07em; max-width: 8ch; } .start-form > p { max-width: 42ch; color: #69767e; line-height: 1.6; margin: 28px 0 42px; }
 label { display: block; margin-bottom: 9px; color: #4a5961; font-size: .78rem; font-weight: 700; } .input-row { display: flex; gap: 10px; }
+.mode-selector { display: flex; gap: 8px; margin-bottom: 16px; }
+.mode-selector button { min-height: 38px; background: transparent; color: #526169; border: 1px solid #aeb9be; }
+.mode-selector button.selected { background: #1d252c; color: white; border-color: #1d252c; }
 input { width: 100%; min-width: 0; border: 1px solid #bfc8cd; border-radius: 4px; background: #f7f9fa; color: #1d252c; padding: 14px 15px; font: inherit; outline: none; } input:focus { border-color: #da3d35; box-shadow: 0 0 0 3px #f5c4bf; }
 button { border: 0; border-radius: 4px; padding: 0 20px; background: #1d252c; color: #fff; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: transform .15s, background .15s; } button:hover:not(:disabled) { transform: translateY(-2px); background: #da3d35; } button:disabled { cursor: wait; opacity: .5; }
 .pokemon-frame { position: relative; width: min(100%, 540px); aspect-ratio: 1.25; display: grid; place-items: center; margin: 0 auto 22px; overflow: hidden; background: radial-gradient(circle, #f7fafb 0 32%, #c9d3d7 33% 34%, transparent 35%), linear-gradient(135deg, #d3dce0, #eef2f4); border: 1px solid #c2ccd0; }

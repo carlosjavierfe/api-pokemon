@@ -125,4 +125,17 @@ describe("game API", () => {
     const scores = await scoresResponse.json() as { scores: Array<{ playerName: string; rounds: number }> };
     expect(scores.scores.find((score) => score.playerName === "Brock")?.rounds).toBe(10);
   });
+
+  it("finishes streak mode on the first wrong answer", async () => {
+    const gameResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "Gary", mode: "streak" }) }, env);
+    const game = await gameResponse.json() as { id: string; mode: string };
+    expect(game.mode).toBe("streak");
+
+    const response = await app.request(`/api/games/${game.id}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ answer: "wrong-answer" }),
+    }, env);
+    const result = await response.json() as { finished: boolean; streak: number };
+    expect(result).toMatchObject({ finished: true, streak: 0 });
+  });
 });

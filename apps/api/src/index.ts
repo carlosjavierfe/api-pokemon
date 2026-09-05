@@ -12,6 +12,7 @@ type Bindings = {
 type Game = GameState & {
   id: string;
   playerName: string;
+  mode: "standard" | "streak";
   pokemon: PokemonFacts;
   hints: string[];
   startedAt: number;
@@ -53,7 +54,7 @@ app.get("/openapi.json", (context) => context.json(openApiDocument));
 app.get("/docs", (context) => new Response(swaggerHtml, { headers: { "Content-Type": "text/html; charset=UTF-8" } }));
 
 app.post("/games", async (context) => {
-  const payload = await readJson<{ playerName?: string }>(context.req);
+  const payload = await readJson<{ playerName?: string; mode?: "standard" | "streak" }>(context.req);
   const playerName = payload?.playerName?.trim();
 
   if (!playerName || playerName.length > 40) {
@@ -65,6 +66,7 @@ app.post("/games", async (context) => {
   const game: Game = {
     id: crypto.randomUUID(),
     playerName,
+    mode: payload?.mode === "streak" ? "streak" : "standard",
     pokemon,
     hints: [],
     difficulty: "easy",
@@ -120,7 +122,7 @@ app.post("/games/:id/guess", async (context) => {
   game.streak = correct ? game.streak + 1 : 0;
   game.score += points;
   game.difficulty = nextDifficulty(game.difficulty, correct, game.hints.length);
-  const completed = game.round >= 10;
+  const completed = game.mode === "streak" ? !correct : game.round >= 10;
   game.status = completed ? "finished" : "active";
   game.round += completed ? 0 : 1;
   if (!completed) {
@@ -166,6 +168,7 @@ function publicGame(game: Game) {
   return {
     id: game.id,
     playerName: game.playerName,
+    mode: game.mode,
     difficulty: game.difficulty,
     round: game.round,
     score: game.score,
@@ -187,6 +190,7 @@ async function findGame(database: D1Database | undefined, id: string): Promise<G
   const game: Game = {
     id: row.id,
     playerName: row.player_name,
+    mode: row.mode as Game["mode"],
     pokemon: JSON.parse(row.pokemon_json) as PokemonFacts,
     hints: JSON.parse(row.hints_json) as string[],
     difficulty: row.difficulty as Difficulty,
@@ -204,13 +208,14 @@ async function saveGame(database: D1Database, game: Game, saveScore = false): Pr
   await database.prepare(
     `INSERT INTO games
       (id, status, difficulty, round_count, score, streak, player_name, pokemon_json,
-       hints_json, started_at, round, created_at, finished_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+       hints_json, started_at, round, created_at, finished_at, mode)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
      ON CONFLICT(id) DO UPDATE SET
        status = excluded.status, difficulty = excluded.difficulty,
        round_count = excluded.round_count, score = excluded.score,
        streak = excluded.streak, hints_json = excluded.hints_json,
-       round = excluded.round, finished_at = excluded.finished_at`,
+      round = excluded.round, finished_at = excluded.finished_at,
+      mode = excluded.mode`,
   ).bind(
     game.id,
     game.status,
@@ -225,6 +230,7 @@ async function saveGame(database: D1Database, game: Game, saveScore = false): Pr
     game.round,
     new Date(game.startedAt).toISOString(),
     game.status === "finished" ? new Date().toISOString() : null,
+    game.mode,
   ).run();
 
   if (saveScore) {
@@ -241,6 +247,7 @@ type DatabaseGame = {
   score: number;
   streak: number;
   player_name: string;
+  mode: string;
   pokemon_json: string;
   hints_json: string;
   started_at: number;

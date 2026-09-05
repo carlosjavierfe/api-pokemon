@@ -5,6 +5,7 @@ import "./styles.css";
 type Game = {
   id: string;
   playerName: string;
+  mode: "standard" | "streak";
   difficulty: "easy" | "normal" | "hard";
   round: number;
   score: number;
@@ -35,6 +36,7 @@ const ROUND_TIME_LIMIT_SECONDS = 30;
 
 function App() {
   const [playerName, setPlayerName] = useState("");
+  const [mode, setMode] = useState<"standard" | "streak">("standard");
   const [game, setGame] = useState<Game | null>(null);
   const [answer, setAnswer] = useState("");
   const [result, setResult] = useState<Result | null>(null);
@@ -56,7 +58,7 @@ function App() {
   async function startGame(event: FormEvent) {
     event.preventDefault(); setLoading(true); setError("");
     try {
-      const created = await request<Game>("/games", { method: "POST", body: JSON.stringify({ playerName }) });
+      const created = await request<Game>("/games", { method: "POST", body: JSON.stringify({ playerName, mode }) });
       setGame(created); setResult(null); setAnswer("");
       setSecondsLeft(ROUND_TIME_LIMIT_SECONDS);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Error al iniciar partida."); }
@@ -115,12 +117,12 @@ function App() {
           <div className="section-label"><span>01</span> Identifica la silueta</div>
           {!game ? <form className="start-form" onSubmit={startGame}>
             <h2>Tu próxima captura empieza aquí.</h2>
-            <p>Entra en una partida de 10 rondas. Cada pista ayuda, pero reduce tu puntuación.</p>
+            <p>{mode === "standard" ? "Entra en una partida de 10 rondas." : "Mantén tu racha hasta el primer fallo."} Cada pista ayuda, pero reduce tu puntuación.</p>
             <label htmlFor="playerName">Nombre de entrenador</label>
-            <div className="input-row"><input id="playerName" value={playerName} onChange={(event) => setPlayerName(event.target.value)} maxLength={40} placeholder="Ej. Ash" required /><button type="submit" disabled={loading}>{loading ? "Cargando..." : "Comenzar"}</button></div>
+            <div className="mode-selector" role="group" aria-label="Modo de juego"><button type="button" className={mode === "standard" ? "selected" : ""} onClick={() => setMode("standard")}>10 rondas</button><button type="button" className={mode === "streak" ? "selected" : ""} onClick={() => setMode("streak")}>Racha infinita</button></div><div className="input-row"><input id="playerName" value={playerName} onChange={(event) => setPlayerName(event.target.value)} maxLength={40} placeholder="Ej. Ash" required /><button type="submit" disabled={loading}>{loading ? "Cargando..." : "Comenzar"}</button></div>
           </form> : <>
             <div className={`pokemon-frame ${result ? "revealed" : ""}`}><div className="scan-line" /><img src={result?.pokemon.imageUrl ?? game.imageUrl} alt={result ? result.pokemon.name : "Pokemon oculto"} />{!result && <span className="unknown">?</span>}</div>
-            <div className="round-meta"><span>Ronda {game.round} / 10</span><span className={`timer ${secondsLeft <= 5 ? "urgent" : ""}`}>00:{String(secondsLeft).padStart(2, "0")}</span><span className={`difficulty ${game.difficulty}`}>{game.difficulty}</span></div>
+            <div className="round-meta"><span>{game.mode === "streak" ? `Racha ${game.round}` : `Ronda ${game.round} / 10`}</span><span className={`timer ${secondsLeft <= 5 ? "urgent" : ""}`}>00:{String(secondsLeft).padStart(2, "0")}</span><span className={`difficulty ${game.difficulty}`}>{game.difficulty}</span></div>
             {result ? <div className={`result ${result.correct ? "success" : "failure"}`}><p className="eyebrow">{result.correct ? "Acierto confirmado" : result.timedOut ? "Tiempo agotado" : "Ronda resuelta"}</p><h2>Era {result.pokemon.name}</h2><div className="score-breakdown"><span>Base <b>{result.scoreBreakdown.basePoints}</b></span><span>Velocidad <b>+{result.scoreBreakdown.speedBonus}</b></span><span>Pistas <b>-{result.scoreBreakdown.hintPenalty}</b></span><span>Multiplicador <b>x{result.scoreBreakdown.streakMultiplier.toFixed(1)}</b></span><strong>Total ronda <b>{result.scoreBreakdown.totalPoints}</b></strong></div><p className="total-score">Total partida: <b>{result.score}</b> pts</p>{result.finished ? <button type="button" onClick={resetGame}>Nueva partida</button> : <button type="button" onClick={() => { setResult(null); setAnswer(""); }}>Siguiente ronda</button>}</div> : <form className="guess-form" onSubmit={submitGuess}><label htmlFor="answer">¿Cuál es tu respuesta?</label><div className="input-row"><input id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Escribe el nombre..." autoComplete="off" required /><button type="submit" disabled={loading}>{loading ? "..." : "Adivinar"}</button></div></form>}
           </>}
           {error && <p className="error-message" role="alert">{error}</p>}

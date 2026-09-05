@@ -82,7 +82,7 @@ Consulta `.env.example`. No subas `.env`, `.dev.vars`, tokens ni claves.
 
 ## Alcance MVP
 
-Incluye partida, pistas deterministas, puntuación, ranking, API propia, persistencia preparada, responsive, CORS y Swagger. Autenticación, perfiles, modo infinito y proveedores LLM quedan fuera del MVP.
+Incluye partidas estándar de 10 rondas y modo racha hasta el primer fallo, pistas deterministas, puntuación, ranking, API propia, persistencia preparada, responsive, CORS y Swagger. Autenticación, perfiles y proveedores LLM quedan fuera del MVP.
 
 ## Estado
 

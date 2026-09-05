@@ -59,6 +59,13 @@
 - El frontend muestra la cuenta atrás y envía una resolución vacía al llegar a cero.
 - El pool inicial contiene los 151 Pokemon originales y no repite el ID inmediatamente anterior.
 
+## ADR-010: Modos de partida
+
+- Estado: aceptada.
+- `standard` termina al completar 10 rondas.
+- `streak` termina en el primer fallo o timeout y conserva la racha acumulada.
+- El modo se persiste en D1 mediante `migrations/0002_game_mode.sql`.
+
 ## Riesgos abiertos
 
 - Deben probarse frontend y API en una URL pública.
