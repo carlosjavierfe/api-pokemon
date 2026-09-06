@@ -293,3 +293,15 @@ Tarea: ejecutar typecheck, tests, build, Playwright frontend, `git diff --check`
 Resultado: `nextRound` conserva ronda, imagen y dos `choices`; la segunda silueta puede retrasarse o fallar sin bloquear la selección; el cliente no llama PokéAPI ni calcula el puntaje. D1 local no tiene migraciones pendientes y las migraciones 0001-0003 están configuradas en Wrangler.
 Validación: `npm run typecheck`, `npm test` (18 API, 7 shared, 8 Playwright), `npm run build`, `npm --workspace apps/web test` (8/8) y `git diff --check`, todo correcto; no hay secretos sensibles versionados.
 Estado: sin bloqueos técnicos detectados en esta ronda; no se hizo push ni despliegue. El árbol conserva cambios locales previos en código y documentación.
+
+### 2026-09-06 — frontend/qa-release — despliegue Pages y smoke público
+Tarea: construir la versión actual con `VITE_API_URL` de producción, publicar `apps/web/dist` en Pages y verificar el flujo público responsive.
+Resultado: deployment `https://a1021a2c.api-pokemon.pages.dev`; alias `https://api-pokemon.pages.dev` HTTP 200; bundle contiene `https://api-pokemon-api.carlosjaviermendezgutierrez.workers.dev/api`; Worker `/api/health` HTTP 200.
+Validación: `npm run typecheck` correcto; `npm --workspace apps/web test` (10/10); `npm run build` correcto; build de producción con `VITE_API_URL` correcto; smoke Chromium público en escritorio (1280 px) y móvil (390 px): dos opciones en rondas 1 y 2, navegación `PK` al formulario y sin overflow horizontal.
+Estado: aceptado; no se modificó backend ni se hizo push adicional.
+
+### 2026-09-06 — qa-release — smoke público final autorizado
+Tarea: repetir la validación final contra Pages y Worker, cubriendo health, OpenAPI, docs, CORS, flujo standard alternando GET/POST, ranking, streak, timeout, opciones, pistas, navegación PK, responsive y ausencia de PokéAPI directa.
+Resultado: Pages y Worker HTTP 200; CORS autorizado para `https://api-pokemon.pages.dev` y sin cabecera para origen externo; OpenAPI/Swagger correctos; ronda activa sin `pokemon`; dos opciones y pistas sin nombre del objetivo; standard avanzó `1->2` hasta `10->10`, terminó y apareció en ranking; streak terminó ante fallo; timeout real devolvió `timedOut=true` y `points=0`; bundle sin `pokeapi.co`; Chromium público móvil 390 px y escritorio sin overflow, errores de consola ni llamadas directas a PokéAPI; PK volvió al formulario.
+Validación: `npm run typecheck`; `npm test` (10 E2E, 18 API, 7 dominio); `npm run build`; smoke HTTP público con aserciones; smoke Chromium público. Sin cambios de código ni push.
+Estado: producción lista desde QA; quedan únicamente acciones administrativas de commit/push fuera de esta delegación.
