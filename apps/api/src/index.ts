@@ -259,6 +259,7 @@ async function saveGame(database: D1Database, game: Game, saveScore = false): Pr
          status = excluded.status, difficulty = excluded.difficulty,
          round_count = excluded.round_count, score = excluded.score,
          streak = excluded.streak, hints_json = excluded.hints_json,
+        pokemon_json = excluded.pokemon_json, started_at = excluded.started_at,
          round = excluded.round, finished_at = excluded.finished_at,
          mode = excluded.mode, choices_json = excluded.choices_json
       WHERE excluded.round > games.round

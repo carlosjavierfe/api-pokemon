@@ -247,10 +247,13 @@ describe("game API", () => {
     expect(new Set(game.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
 
     let finalResult: { finished: boolean; round: number } | undefined;
+    let previousImageUrl: string | undefined;
     for (let expectedRound = 1; expectedRound <= 10; expectedRound += 1) {
       const readResponse = await app.request(`/api/games/${game.id}`, {}, { ...env, DB: database });
-      const read = await readResponse.json() as { round: number; status: string; choices: string[] };
+      const read = await readResponse.json() as { round: number; status: string; choices: string[]; imageUrl: string; startedAt: number };
       expect(read).toMatchObject({ round: expectedRound, status: "active" });
+      if (previousImageUrl) expect(read.imageUrl).not.toBe(previousImageUrl);
+      previousImageUrl = read.imageUrl;
       expect(read.choices).toHaveLength(2);
       expect(new Set(read.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
 
@@ -258,13 +261,15 @@ describe("game API", () => {
         method: "POST",
         body: JSON.stringify({}),
       }, { ...env, DB: database });
-      finalResult = await guessResponse.json() as { finished: boolean; round: number; choices: string[]; nextRound: { choices: string[] } | null };
+      finalResult = await guessResponse.json() as { finished: boolean; round: number; choices: string[]; nextRound: { choices: string[]; imageUrl: string; startedAt: number } | null };
       expect(finalResult.round).toBe(expectedRound === 10 ? 10 : expectedRound + 1);
       expect(finalResult.choices).toHaveLength(2);
       expect(new Set(finalResult.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
       if (finalResult.nextRound) {
         expect(finalResult.nextRound.choices).toHaveLength(2);
         expect(new Set(finalResult.nextRound.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
+        expect(finalResult.nextRound.imageUrl).not.toBe(read.imageUrl);
+        expect(finalResult.nextRound.startedAt).toBeGreaterThanOrEqual(read.startedAt);
       }
     }
 

@@ -145,6 +145,10 @@ function App() {
         imageUrl: response.nextRound?.imageUrl ?? game.imageUrl,
         startedAt: response.nextRound?.startedAt ?? game.startedAt,
       });
+      if (response.nextRound) {
+        setImageReady(false);
+        setImageError(false);
+      }
       const ranking = await request<{ scores: Score[] }>("/scores");
       setScores(ranking.scores);
     } catch (requestError) {
