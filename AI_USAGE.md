@@ -52,6 +52,19 @@ Resultado: filtro por defecto `mode=standard`, exclusión de streak e incompleta
 Validación: tests de API y typecheck del backend.
 Estado: aceptado.
 
+### 2026-09-06 — qa-release — reproducción pública standard solicitada
+Tarea: reproducir contra Worker y Pages públicos una partida `standard` completa, alternando GET/POST hasta la ronda 10, y comprobar persistencia del ranking y resumen visual.
+Resultado: Pages HTTP 200. Worker creó `gameId=f90f70b8-d75c-4a49-a34f-63fa3a3a3b5d` para `qa-public-1788730784928` (HTTP 201). Las respuestas alternadas fueron `GET 1 -> POST 2`, `GET 2 -> POST 3`, `GET 3 -> POST 4`, `GET 4 -> POST 5`, `GET 5 -> POST 6`, `GET 6 -> POST 7`, `GET 7 -> POST 8`, `GET 8 -> POST 9`, `GET 9 -> POST 10`, `GET 10 -> POST 10`; todos los GET/POST devolvieron HTTP 200.
+Evidencia: la respuesta POST de ronda 10 devolvió `finished=true`, `nextRound=null`, `score=683`, `points=150`, `timedOut=false`; el GET posterior devolvió `status=finished`, `round=10`, `score=683`. `GET /api/scores?mode=standard&rounds=10` devolvió HTTP 200 y la entrada `{ playerName: "qa-public-1788730784928", score: 683, rounds: 10 }` apareció.
+Validación UI: en `https://api-pokemon.pages.dev`, Chromium completó 10 rondas con respuestas reales; al finalizar mostró `Ronda 10 / 10`, `Nueva partida`, `Total partida: 800 pts` y la entrada visible `UI QA Public — 800` en el ranking.
+Estado: smoke público aceptado; no se modificó código, no se hizo commit, push ni deploy.
+
+### 2026-09-06 — backend/orchestrator — diagnóstico de ranking autorizado
+Tarea: verificar `GET /api/scores?mode=standard&rounds=10`, filtros y configuración D1 sin editar código ni desplegar.
+Resultado: Worker público respondió HTTP 200 con 8 filas, todas `rounds: 10`; `mode=streak` respondió HTTP 400. El endpoint no lee el query param `rounds`: el código aplica siempre `scores.rounds = 10` y el frontend solicita `/scores` sin `mode` ni `rounds`.
+Validación: `curl` contra `https://api-pokemon-api.carlosjaviermendezgutierrez.workers.dev/api/scores?mode=standard&rounds=10`; revisión de `apps/api/src/index.ts`, `migrations/0001_initial.sql`–`0003_game_choices.sql` y `apps/api/wrangler.toml`. La consulta D1 `--remote` no terminó por la sesión interactiva/DNS y no se registra como verificada.
+Estado: no hay evidencia de fallo de persistencia, frontend o configuración en este diagnóstico; posible defecto de filtro solo si `rounds` debía ser dinámico.
+
 ### 2026-09-05 — Orchestrator -> frontend
 Tarea: añadir feedback visual accesible para acierto, error y timeout.
 Resultado: check verde, X roja e indicador de tiempo agotado en los estados de resultado.
@@ -305,3 +318,9 @@ Tarea: repetir la validación final contra Pages y Worker, cubriendo health, Ope
 Resultado: Pages y Worker HTTP 200; CORS autorizado para `https://api-pokemon.pages.dev` y sin cabecera para origen externo; OpenAPI/Swagger correctos; ronda activa sin `pokemon`; dos opciones y pistas sin nombre del objetivo; standard avanzó `1->2` hasta `10->10`, terminó y apareció en ranking; streak terminó ante fallo; timeout real devolvió `timedOut=true` y `points=0`; bundle sin `pokeapi.co`; Chromium público móvil 390 px y escritorio sin overflow, errores de consola ni llamadas directas a PokéAPI; PK volvió al formulario.
 Validación: `npm run typecheck`; `npm test` (10 E2E, 18 API, 7 dominio); `npm run build`; smoke HTTP público con aserciones; smoke Chromium público. Sin cambios de código ni push.
 Estado: producción lista desde QA; quedan únicamente acciones administrativas de commit/push fuera de esta delegación.
+
+### 2026-09-06 — frontend delegado — resultado final, opciones y audio
+Tarea: retirar la respuesta manual, mostrar `Es {pokemon.name}`, añadir resumen final con datos de API y audio Web Audio opcional.
+Resultado: solo quedan dos opciones por ronda; el placeholder inicial es `Escribe tu nombre, ej. Ash`; el resumen usa `playerName`, `score`, `round` y `streak` sin calcular score en frontend; audio sintetizado activable/desactivable tras interacción.
+Validación: `npm --workspace apps/web run typecheck`, `npm --workspace apps/web test` (12/12) y `npm --workspace apps/web run build`, todo correcto. Sin llamadas externas nuevas, push ni despliegue.
+Estado: aceptado.

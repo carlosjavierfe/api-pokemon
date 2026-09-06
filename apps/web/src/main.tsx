@@ -1,4 +1,4 @@
-import { FormEvent, StrictMode, useEffect, useState } from "react";
+import { FormEvent, StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
@@ -51,7 +51,6 @@ function App() {
   const [playerName, setPlayerName] = useState("");
   const [mode, setMode] = useState<"standard" | "streak">("standard");
   const [game, setGame] = useState<Game | null>(null);
-  const [answer, setAnswer] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [scores, setScores] = useState<Score[]>([]);
   const [loading, setLoading] = useState(false);
@@ -59,6 +58,8 @@ function App() {
   const [secondsLeft, setSecondsLeft] = useState(ROUND_TIME_LIMIT_SECONDS);
   const [imageReady, setImageReady] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${apiUrl}${path}`, {
@@ -82,7 +83,6 @@ function App() {
       });
       setGame(created);
       setResult(null);
-      setAnswer("");
       setSecondsLeft(ROUND_TIME_LIMIT_SECONDS);
       setImageReady(false);
       setImageError(false);
@@ -116,11 +116,6 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function submitGuess(event: FormEvent) {
-    event.preventDefault();
-    await resolveGuess(answer);
   }
 
   async function resolveGuess(value: string) {
@@ -162,6 +157,35 @@ function App() {
     }
   }
 
+  function toggleAudio() {
+    if (audioEnabled) {
+      setAudioEnabled(false);
+      return;
+    }
+
+    const audioContext = audioContextRef.current ?? new AudioContext();
+    audioContextRef.current = audioContext;
+    if (audioContext.state === "suspended") void audioContext.resume();
+    setAudioEnabled(true);
+  }
+
+  useEffect(() => {
+    if (!audioEnabled || !result) return;
+    const audioContext = audioContextRef.current;
+    if (!audioContext) return;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.frequency.value = result.correct ? 660 : 220;
+    oscillator.type = "sine";
+    gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.18);
+    oscillator.connect(gain).connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.2);
+    return () => oscillator.disconnect();
+  }, [audioEnabled, result]);
+
   useEffect(() => {
     if (!game || result) return;
     const updateTimer = () => {
@@ -180,7 +204,6 @@ function App() {
   function resetGame() {
     setGame(null);
     setResult(null);
-    setAnswer("");
     setError("");
     setSecondsLeft(ROUND_TIME_LIMIT_SECONDS);
     setImageReady(false);
@@ -206,6 +229,16 @@ function App() {
         <div className="status-pill">
           <span /> API en línea
         </div>
+        <button
+          className="audio-toggle"
+          type="button"
+          aria-pressed={audioEnabled}
+          aria-label={audioEnabled ? "Desactivar audio" : "Activar audio"}
+          title={audioEnabled ? "Desactivar audio" : "Activar audio"}
+          onClick={toggleAudio}
+        >
+          {audioEnabled ? "Audio: on" : "Audio: off"}
+        </button>
       </header>
       <main className="layout">
         <section className="hero-panel">
@@ -248,7 +281,7 @@ function App() {
                   value={playerName}
                   onChange={(event) => setPlayerName(event.target.value)}
                   maxLength={40}
-                  placeholder="Ej. Ash"
+                  placeholder="Escribe tu nombre, ej. Ash"
                   required
                 />
                 <button type="submit" disabled={loading}>
@@ -340,7 +373,7 @@ function App() {
                         ? "Tiempo agotado"
                         : "Ronda resuelta"}
                   </p>
-                  <h2>Era {result.pokemon.name}</h2>
+                  <h2>Es {result.pokemon.name}</h2>
                   <div className="score-breakdown">
                     <span>
                       Base <b>{result.scoreBreakdown.basePoints}</b>
@@ -364,6 +397,17 @@ function App() {
                   <p className="total-score">
                     Total partida: <b>{result.score}</b> pts
                   </p>
+                  {result.finished && (
+                    <div className="final-summary" role="status">
+                      <p className="eyebrow">Partida terminada</p>
+                      <h3>Buen trabajo, {game.playerName}</h3>
+                      <dl>
+                        <div><dt>Puntuación</dt><dd>{result.score}</dd></div>
+                        <div><dt>Rondas</dt><dd>{result.round}</dd></div>
+                        <div><dt>Racha final</dt><dd>{result.streak}</dd></div>
+                      </dl>
+                    </div>
+                  )}
                   {result.finished ? (
                     <button type="button" onClick={resetGame}>
                       Nueva partida
@@ -373,7 +417,6 @@ function App() {
                       type="button"
                       onClick={() => {
                         setResult(null);
-                        setAnswer("");
                         setSecondsLeft(ROUND_TIME_LIMIT_SECONDS);
                         setImageReady(false);
                         setImageError(false);
@@ -384,7 +427,7 @@ function App() {
                   )}
                 </div>
               ) : (
-                <form className="guess-form" onSubmit={submitGuess}>
+                <div className="guess-form">
                   <label htmlFor="answer">¿Cuál es tu respuesta?</label>
                   <div className="choice-list">
                     {game.choices.map((choice) => (
@@ -392,29 +435,13 @@ function App() {
                         key={choice}
                         type="button"
                         disabled={loading}
-                        onClick={() => {
-                          setAnswer(choice);
-                          void resolveGuess(choice);
-                        }}
+                        onClick={() => void resolveGuess(choice)}
                       >
                         {choice}
                       </button>
                     ))}
                   </div>
-                  <p className="choice-divider">o escribe tu respuesta</p>
-                  <div className="input-row">
-                    <input
-                      id="answer"
-                      value={answer}
-                      onChange={(event) => setAnswer(event.target.value)}
-                      placeholder="Escribe el nombre..."
-                      autoComplete="off"
-                    />
-                    <button type="submit" disabled={loading}>
-                      {loading ? "..." : "Adivinar"}
-                    </button>
-                  </div>
-                </form>
+                </div>
               )}
             </>
           )}
