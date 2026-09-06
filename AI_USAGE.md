@@ -120,6 +120,12 @@ Resultado: eliminado `apps/web/test-results/.last-run.json`; añadidas reglas pa
 Validación: `git diff --check` y comprobación de archivos generados trackeables.
 Estado: aceptado; sin push ni despliegue.
 
+### 2026-09-05 — Orchestrator -> qa-release
+Tarea: preparar release readiness con checklist de tests, E2E, migraciones, Worker, Pages, CORS, variables, smoke público y entrega.
+Resultado: creado `docs/RELEASE_CHECKLIST.md` con estados y bloqueos explícitos; revisados `MEMORIA_PROYECTO.md`, `DECISIONS.md`, `README.md`, scripts, migraciones, `.env.example` y estado Git.
+Validación: repositorio en `main` alineado con `origin/main`; no se desplegó, no se hizo commit y no se usó Git push. No se inventaron URLs ni resultados públicos.
+Estado: checklist creado; release bloqueado hasta verificar D1/URLs públicas, `WEB_ORIGIN` de Pages y smoke público.
+
 ## Prompts y resultados relevantes
 
 ### Scaffolding
