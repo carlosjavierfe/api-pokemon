@@ -238,6 +238,12 @@ Estado: aceptado; no se hizo push.
 Tarea: verificar Pages, Worker, CORS, partidas `standard`/`streak`, opciones, pistas, ronda activa, resolución y ranking.
 Resultado: Pages HTTP 200 con root; Worker `/api/health`, `/api/openapi.json` y `/api/docs` HTTP 200; CORS autorizado para `https://api-pokemon.pages.dev` y sin `Access-Control-Allow-Origin` para `https://external.example`. Crear partida `standard` y `streak`, dos opciones, pista y resolución respondieron correctamente; la ronda activa no contiene `pokemon` ni nombre/ID secreto; `streak` finalizó ante respuesta incorrecta; partida standard incompleta no apareció en ranking.
 Validación: smoke HTTP con `curl` y `jq` contra `https://api-pokemon.pages.dev` y `https://api-pokemon-api.carlosjaviermendezgutierrez.workers.dev/api`.
+
+### 2026-09-06 — backend/orchestrator — release publicado y redeploy D1
+Tarea: publicar el commit local `4fdab5a`, validar backend y redeployar el Worker con D1 y `WEB_ORIGIN` de Pages.
+Resultado: `git push origin main` actualizó `origin/main` a `4fdab5a`; Worker `api-pokemon-api` desplegado en `https://api-pokemon-api.carlosjaviermendezgutierrez.workers.dev`, versión `586b706a-5573-47c4-ac6d-42e041fd0c5d`, con `env.DB` -> `api-pokemon-db` y `WEB_ORIGIN=https://api-pokemon.pages.dev`.
+Validación: `npm run typecheck` correcto; `npm --workspace apps/api test` (18/18); `npx wrangler d1 migrations apply api-pokemon-db --remote --config apps/api/wrangler.toml` devolvió `No migrations to apply`; `/api/health` 200, `/api/openapi.json` 200 con `/games`, `/api/docs` cargado; preflight CORS 204 para Pages y origen externo sin `Access-Control-Allow-Origin` expuesto por el navegador integrado; Pages pudo consumir `/api/health` 200.
+Estado: aceptado; no se modificó frontend ni código funcional.
 Estado: BLOQUEO CRÍTICO. Al encadenar 10 `POST /games/:id/guess` de una partida `standard` usando `nextRound`, las respuestas públicas regresaron a rondas anteriores (por ejemplo, 6 -> 4 -> 5) y nunca llegaron a `finished=true`; alternando `GET /games/:id` ocurrió la misma regresión. Evidencia compatible con estado en memoria del Worker sobrescribiendo/adelantando D1 entre isolates. Ranking de partida completa y timeout público no certificables; no se modificó código, no se hizo push ni despliegue.
 
 ### 2026-09-05 — Orchestrator -> backend
