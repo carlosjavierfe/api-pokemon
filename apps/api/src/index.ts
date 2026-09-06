@@ -88,8 +88,8 @@ app.post("/games", async (context) => {
     status: "active",
   };
 
-  games.set(game.id, game);
   if (context.env.DB) await saveGame(context.env.DB, game);
+  else games.set(game.id, game);
   return context.json(publicGame(game), 201);
 });
 
@@ -143,20 +143,26 @@ app.post("/games/:id/guess", async (context) => {
     game.startedAt = Date.now();
   }
   if (context.env.DB) await saveGame(context.env.DB, game, completed);
+  const responseGame = context.env.DB
+    ? await findGame(context.env.DB, game.id)
+    : game;
+  if (!responseGame) throw new ControlledServiceError("Storage unavailable", 503);
 
   return context.json({
     correct,
     points,
-    score: game.score,
-    streak: game.streak,
-    difficulty: game.difficulty,
-    round: game.round,
-    finished: completed,
+    score: responseGame.score,
+    streak: responseGame.streak,
+    difficulty: responseGame.difficulty,
+    round: responseGame.round,
+    finished: responseGame.status === "finished",
     timedOut,
     scoreBreakdown,
     pokemon: { id: resolvedPokemon.id, name: resolvedPokemon.name, imageUrl: pokemonImageUrl(resolvedPokemon.id) },
-    nextRound: completed ? null : { round: game.round, startedAt: game.startedAt, imageUrl: pokemonImageUrl(game.pokemon.id), choices: game.choices },
-    choices: game.choices,
+    nextRound: responseGame.status === "finished"
+      ? null
+      : { round: responseGame.round, startedAt: responseGame.startedAt, imageUrl: pokemonImageUrl(responseGame.pokemon.id), choices: responseGame.choices },
+    choices: responseGame.choices,
   });
 });
 
@@ -210,7 +216,7 @@ function publicGame(game: Game) {
 
 async function findGame(database: D1Database | undefined, id: string): Promise<Game | undefined> {
   const memoryGame = games.get(id);
-  if (memoryGame || !database) return memoryGame;
+  if (!database) return memoryGame;
 
   let row: DatabaseGame | null;
   try {
@@ -239,7 +245,6 @@ async function findGame(database: D1Database | undefined, id: string): Promise<G
   } catch {
     throw new ControlledServiceError("Storage unavailable", 503);
   }
-  games.set(id, game);
   return game;
 }
 
@@ -255,7 +260,10 @@ async function saveGame(database: D1Database, game: Game, saveScore = false): Pr
          round_count = excluded.round_count, score = excluded.score,
          streak = excluded.streak, hints_json = excluded.hints_json,
          round = excluded.round, finished_at = excluded.finished_at,
-         mode = excluded.mode, choices_json = excluded.choices_json`,
+         mode = excluded.mode, choices_json = excluded.choices_json
+      WHERE excluded.round > games.round
+         OR (excluded.round = games.round
+        AND (games.status != 'finished' OR excluded.status = 'finished'))`,
     ).bind(
       game.id,
       game.status,
@@ -276,8 +284,11 @@ async function saveGame(database: D1Database, game: Game, saveScore = false): Pr
 
     if (saveScore) {
       await database.prepare(
-        "INSERT OR REPLACE INTO scores (id, game_id, player_name, score, rounds, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-      ).bind(game.id, game.id, game.playerName, game.score, game.round, new Date().toISOString()).run();
+        `INSERT OR REPLACE INTO scores (id, game_id, player_name, score, rounds, created_at)
+         SELECT ?1, id, player_name, score, round, ?2
+         FROM games
+         WHERE id = ?1 AND status = 'finished' AND mode = 'standard' AND round = 10`,
+      ).bind(game.id, new Date().toISOString()).run();
     }
   } catch {
     throw new ControlledServiceError("Storage unavailable", 503);

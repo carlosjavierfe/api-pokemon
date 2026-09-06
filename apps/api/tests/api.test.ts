@@ -26,6 +26,65 @@ const failingDatabase = {
   prepare: () => { throw new Error("private D1 failure"); },
 } as unknown as D1Database;
 
+type StoredGame = Record<string, unknown> & { id: string; round: number };
+
+function createDatabase(): D1Database {
+  const games = new Map<string, StoredGame>();
+  const scores = new Map<string, { playerName: string; score: number; rounds: number }>();
+
+  return {
+    prepare(query: string) {
+      return {
+        async all<T>() {
+          return { results: [...scores.values()] as T[] };
+        },
+        bind(...values: unknown[]) {
+          return {
+            async first<T>() {
+              const id = String(values[0]);
+              return (games.get(id) ?? null) as T | null;
+            },
+            async run() {
+              if (query.includes("INSERT INTO games")) {
+                const incoming = {
+                  id: String(values[0]),
+                  status: values[1],
+                  difficulty: values[2],
+                  round_count: values[3],
+                  score: values[4],
+                  streak: values[5],
+                  player_name: values[6],
+                  pokemon_json: values[7],
+                  hints_json: values[8],
+                  started_at: values[9],
+                  round: Number(values[10]),
+                  created_at: values[11],
+                  finished_at: values[12],
+                  mode: values[13],
+                  choices_json: values[14],
+                } as StoredGame;
+                const current = games.get(incoming.id);
+                if (!current
+                  || incoming.round > current.round
+                  || (incoming.round === current.round
+                    && (current.status !== "finished" || incoming.status === "finished"))) {
+                  games.set(incoming.id, incoming);
+                }
+              } else if (query.includes("INSERT OR REPLACE INTO scores")) {
+                const game = games.get(String(values[0]));
+                if (game?.status === "finished" && game.mode === "standard" && game.round === 10) {
+                  scores.set(game.id, { playerName: String(game.player_name), score: Number(game.score), rounds: game.round });
+                }
+              }
+              return { success: true, meta: { changes: 1 } };
+            },
+          };
+        },
+      };
+    },
+  } as unknown as D1Database;
+}
+
 describe("game API", () => {
   it("allows the configured web origin through CORS", async () => {
     const response = await app.request("/api/health", { headers: { Origin: "http://localhost:5173" } }, env);
@@ -178,6 +237,31 @@ describe("game API", () => {
     const scoresResponse = await app.request("/api/scores", {}, env);
     const scores = await scoresResponse.json() as { scores: Array<{ playerName: string; rounds: number }> };
     expect(scores.scores.find((score) => score.playerName === "Brock")?.rounds).toBe(10);
+  });
+
+  it("uses D1 as the round source when GET and POST alternate", async () => {
+    const database = createDatabase();
+    const gameResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "D1 authority" }) }, { ...env, DB: database });
+    const game = await gameResponse.json() as { id: string };
+
+    let finalResult: { finished: boolean; round: number } | undefined;
+    for (let expectedRound = 1; expectedRound <= 10; expectedRound += 1) {
+      const readResponse = await app.request(`/api/games/${game.id}`, {}, { ...env, DB: database });
+      const read = await readResponse.json() as { round: number; status: string };
+      expect(read).toMatchObject({ round: expectedRound, status: "active" });
+
+      const guessResponse = await app.request(`/api/games/${game.id}/guess`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      }, { ...env, DB: database });
+      finalResult = await guessResponse.json() as { finished: boolean; round: number };
+      expect(finalResult.round).toBe(expectedRound === 10 ? 10 : expectedRound + 1);
+    }
+
+    expect(finalResult).toMatchObject({ finished: true, round: 10 });
+    const scoresResponse = await app.request("/api/scores", {}, { ...env, DB: database });
+    const scores = await scoresResponse.json() as { scores: Array<{ playerName: string; rounds: number }> };
+    expect(scores.scores).toContainEqual({ playerName: "D1 authority", score: expect.any(Number), rounds: 10 });
   });
 
   it("finishes streak mode on the first wrong answer", async () => {

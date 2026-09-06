@@ -78,3 +78,28 @@ test("inicia una partida standard y resuelve una ronda con dos opciones", async 
   await expect(page.getByRole("heading", { name: "Era bulbasaur" })).toBeVisible();
   await expect(page.getByRole("status", { name: "Respuesta correcta" })).toBeVisible();
 });
+
+test("mantiene accesibles el inicio y el resultado sin overflow horizontal", async ({ page }) => {
+  await page.route("**/api/**", mockApi);
+  await page.route("**/mock-*.png", mockImage);
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { name: "Tu próxima captura empieza aquí." })).toBeVisible();
+  await expect(page.getByText("o escribe tu respuesta", { exact: true })).toBeHidden();
+  await page.getByLabel("Nombre de entrenador").fill("Ash");
+  await page.getByRole("button", { name: "Comenzar" }).click();
+  await expect(page.getByText("Ronda 1 / 10")).toBeVisible();
+
+  const hasNoHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth && document.body.scrollWidth <= document.body.clientWidth);
+  expect(hasNoHorizontalOverflow).toBe(true);
+
+  await page.locator(".choice-list button").first().click();
+  const resultHeading = page.getByRole("heading", { name: "Era bulbasaur" });
+  await expect(resultHeading).toBeVisible();
+  await resultHeading.scrollIntoViewIfNeeded();
+  await expect(resultHeading).toBeInViewport();
+  const resultHasNoHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth && document.body.scrollWidth <= document.body.clientWidth);
+  expect(resultHasNoHorizontalOverflow).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByText("Ronda 1 / 10")).toBeVisible();
+});
