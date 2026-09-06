@@ -126,7 +126,7 @@ describe("game API", () => {
     expect(body).not.toHaveProperty("pokemon");
     expect(body).toHaveProperty("imageUrl");
     expect(body.choices).toHaveLength(2);
-    expect(new Set(body.choices).size).toBe(2);
+    expect(new Set(body.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
   });
 
   it("rejects an invalid player name", async () => {
@@ -242,20 +242,30 @@ describe("game API", () => {
   it("uses D1 as the round source when GET and POST alternate", async () => {
     const database = createDatabase();
     const gameResponse = await app.request("/api/games", { method: "POST", body: JSON.stringify({ playerName: "D1 authority" }) }, { ...env, DB: database });
-    const game = await gameResponse.json() as { id: string };
+    const game = await gameResponse.json() as { id: string; choices: string[] };
+    expect(game.choices).toHaveLength(2);
+    expect(new Set(game.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
 
     let finalResult: { finished: boolean; round: number } | undefined;
     for (let expectedRound = 1; expectedRound <= 10; expectedRound += 1) {
       const readResponse = await app.request(`/api/games/${game.id}`, {}, { ...env, DB: database });
-      const read = await readResponse.json() as { round: number; status: string };
+      const read = await readResponse.json() as { round: number; status: string; choices: string[] };
       expect(read).toMatchObject({ round: expectedRound, status: "active" });
+      expect(read.choices).toHaveLength(2);
+      expect(new Set(read.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
 
       const guessResponse = await app.request(`/api/games/${game.id}/guess`, {
         method: "POST",
         body: JSON.stringify({}),
       }, { ...env, DB: database });
-      finalResult = await guessResponse.json() as { finished: boolean; round: number };
+      finalResult = await guessResponse.json() as { finished: boolean; round: number; choices: string[]; nextRound: { choices: string[] } | null };
       expect(finalResult.round).toBe(expectedRound === 10 ? 10 : expectedRound + 1);
+      expect(finalResult.choices).toHaveLength(2);
+      expect(new Set(finalResult.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
+      if (finalResult.nextRound) {
+        expect(finalResult.nextRound.choices).toHaveLength(2);
+        expect(new Set(finalResult.nextRound.choices)).toEqual(new Set(["pikachu", "bulbasaur"]));
+      }
     }
 
     expect(finalResult).toMatchObject({ finished: true, round: 10 });

@@ -29,9 +29,9 @@ Documento breve de referencia. Solo contiene decisiones, lógica y datos necesar
 - Cada ronda ofrece dos opciones de respuesta, con una correcta y un distractor; la validación sigue en backend.
 - Ranking estándar filtrado a partidas `standard` finalizadas en exactamente 10 rondas.
 - Feedback visual accesible: check para acierto, X para error y estado diferenciado para timeout.
-- Migración D1 pendiente de aplicar: `migrations/0003_game_choices.sql`.
+- Migración D1 aplicada: `migrations/0003_game_choices.sql`.
 - Modos disponibles: `standard` (10 rondas) y `streak` (racha hasta primer fallo o timeout).
-- Migración D1 pendiente de aplicar: `migrations/0002_game_mode.sql`.
+- Migración D1 aplicada: `migrations/0002_game_mode.sql`.
 
 ## Decisiones confirmadas
 
@@ -142,7 +142,7 @@ Skills configurados:
 
 Regla obligatoria: todo agente debe explicar la acción y esperar autorización explícita antes de editar, crear, ejecutar, instalar, usar Git o desplegar. Debe leer esta memoria antes de cambios de arquitectura.
 
-Hasta ahora la configuración de agentes está creada, pero las tareas han sido coordinadas directamente; todavía no se ha delegado una implementación completa a un agente especializado.
+Las tareas de release y corrección se delegan por especialidad mediante `orchestrator`, con evidencia resumida en `AI_USAGE.md`.
 
 ## Seguridad
 

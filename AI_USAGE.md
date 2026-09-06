@@ -239,6 +239,17 @@ Resultado: `https://api-pokemon.pages.dev` y `https://api-pokemon-api.carlosjavi
 Validación: `npm run typecheck`, `npm test` (18 API, 7 dominio, 4 E2E), `npm run build` y `git diff --check` correctos. Playwright público verificó 390 px y escritorio sin overflow, dos opciones, ausencia visible de `o escribe tu respuesta`, feedback de acierto/X/timeout y timeout real tras 31 s. `.env.example` no contiene valores secretos, no hay secretos versionados y el Worker reporta `production`.
 Estado: listo para release; no se modificó código, no se hizo commit ni push.
 
+### 2026-09-06 — backend delegado — verificación local del flujo de juego
+Tarea: reproducir `POST /games -> POST /games/:id/guess -> GET /games/:id` en memoria y con D1 simulado, incluyendo PokéAPI y fallback.
+Resultado: `nextRound` conservó `round`, `imageUrl` y exactamente dos `choices`; D1 conservó `choices_json` y GET devolvió las dos opciones tras alternar lecturas y respuestas. PokéAPI respondió correctamente en éxito y el backend sobrevivió a error HTTP, payload inválido y timeout mediante fallback; sin defecto backend reproducible.
+Validación: `npm run test --workspace apps/api` y `npm test --workspace apps/api -- --reporter=verbose` (18/18); `npm run typecheck --workspace apps/api` correcto. No se tocó frontend, no hubo migraciones, push ni despliegue.
+
+### 2026-09-06 — frontend — regresión tras guess
+Tarea: comprobar la transición desde `guess` a `nextRound`, incluyendo ronda, opciones, imagen y controles durante la carga.
+Resultado: corregido `game.round` para usar `nextRound.round`; el botón textual también permanece deshabilitado hasta `imageReady`. E2E cubre nueva `imageUrl`, dos nuevas opciones y estados disabled/enabled.
+Validación: `npm run typecheck`, `npm --workspace apps/web run test` (6/6) y `npm run build`, todo correcto; cambios solo en `apps/web` y este registro. Sin push ni despliegue.
+Estado: aceptado.
+
 ### 2026-09-05 — qa-release — actualización final del checklist
 Tarea: reflejar la evidencia final de tests, E2E, migraciones, Worker, Pages, CORS y smoke público.
 Resultado: todas esas áreas quedan en `Done`; solo permanecen pendientes el commit de release y el estado limpio previo al commit.
@@ -248,3 +259,25 @@ Estado: listo para release desde QA.
 ## Consolidación final de release — 2026-09-05
 
 El bloqueo crítico histórico de regresión de rondas y el bloqueo alto de overflow responsive quedaron resueltos y verificados por las delegaciones posteriores de backend, frontend y qa-release. La evidencia final certifica Pages/Worker, D1, CORS, contrato, standard monotónico 1..10, streak, pistas, opciones, timeout, E2E responsive y ausencia de secretos; no se hizo push.
+
+### 2026-09-06 — backend — verificación local de choices y D1
+Tarea: inspeccionar `POST /games/:id/guess`, `migrations/0003_game_choices.sql` y el flujo inicial/`nextRound`.
+Resultado: no se detectó defecto de runtime; `choices` contiene exactamente correcta y distractor, y el test D1 verifica lectura/escritura y propagación en `guess`/`nextRound`.
+Validación: `npm --workspace apps/api test` (18/18) y `npm --workspace apps/api run typecheck` correctos; no se desplegó ni se hizo push.
+
+### 2026-09-06 — qa-release — regresión local tras primera resolución
+Tarea: validar `nextRound`, nueva silueta, `choices`, `imageReady`, controles deshabilitados y D1 local.
+Resultado: `game.round`, `imageUrl` y `choices` usan `nextRound`; cada ronda muestra exactamente dos opciones; durante la carga de la segunda imagen las opciones y `Adivinar` permanecen deshabilitados y se habilitan tras `onLoad`, sin controles inutilizables.
+Validación: `npm run typecheck` correcto; `npm test` correcto (18 API, 7 dominio, 6 E2E); `npm run build` correcto; `npm --workspace apps/web run test` correcto (6/6); D1 local: `No migrations to apply!`; `.env.example` sin valores secretos y ningún secreto trackeado. Sin push ni despliegue.
+Estado: aceptado; sin hallazgos bloqueantes para este flujo.
+
+### 2026-09-06 — frontend — fallback seguro de imagen en segunda ronda
+Tarea: evitar que `imageReady` bloquee indefinidamente las respuestas cuando la silueta se retrasa o falla, manteniendo la imagen oculta cuando carga correctamente.
+Resultado: `onError` muestra `Imagen no disponible. Puedes responder igualmente.` sin revelar el Pokemon; las opciones y el campo textual solo se bloquean durante el envío de la respuesta. E2E cubre transición a `nextRound`, imagen retrasada con selección habilitada e imagen fallida con resolución posterior.
+Validación: `npm run typecheck`, `npm --workspace apps/web run test` (8/8), `npm run build`, `git diff --check` y comprobación manual automatizada del flujo completo; todo correcto. Cambios solo en frontend y este registro; no se tocó backend, no hubo push ni despliegue.
+
+### 2026-09-06 — qa-release — ronda de release local autorizada
+Tarea: ejecutar typecheck, tests, build, Playwright frontend, `git diff --check`, revisar D1/migraciones, secretos, puntuación y llamadas a PokéAPI.
+Resultado: `nextRound` conserva ronda, imagen y dos `choices`; la segunda silueta puede retrasarse o fallar sin bloquear la selección; el cliente no llama PokéAPI ni calcula el puntaje. D1 local no tiene migraciones pendientes y las migraciones 0001-0003 están configuradas en Wrangler.
+Validación: `npm run typecheck`, `npm test` (18 API, 7 shared, 8 Playwright), `npm run build`, `npm --workspace apps/web test` (8/8) y `git diff --check`, todo correcto; no hay secretos sensibles versionados.
+Estado: sin bloqueos técnicos detectados en esta ronda; no se hizo push ni despliegue. El árbol conserva cambios locales previos en código y documentación.
