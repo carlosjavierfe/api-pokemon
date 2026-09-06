@@ -239,6 +239,12 @@ Resultado: Worker `https://api-pokemon-api.carlosjaviermendezgutierrez.workers.d
 Validación: partida `1c0b27a4-118c-4227-b58b-26a77cd7b800` alternó GET/POST con secuencia `1->2, 2->3, 3->4, 4->5, 5->6, 6->7, 7->8, 8->9, 9->10, 10->10`, sin retroceso; ronda 10 `finished=true`, estado final persistido y ranking con `rounds=10` y score `130`. `wrangler d1 migrations list --remote`: `No migrations to apply!`; typecheck y 18 tests backend correctos.
 Estado: aceptado; sin cambios de código/frontend y sin push.
 
+### 2026-09-06 — backend/orchestrator — publicación y smoke final
+Tarea: publicar los 4 commits locales, desplegar el Worker con `apps/api/wrangler.toml` y verificar producción sin modificar frontend.
+Resultado: `main` publicada en `origin/main`; Worker desplegado en https://api-pokemon-api.carlosjaviermendezgutierrez.workers.dev, versión `0abcc352-009e-438c-853d-c7d00c44c03d`; Pages configurado como origen CORS.
+Validación: `npm run typecheck`; `npm --workspace apps/api test` (18/18); D1 remoto `No migrations to apply!`; health/OpenAPI/docs HTTP 200; preflight CORS HTTP 204, origen Pages autorizado y origen externo rechazado; partida standard alternando GET/POST 1..10, `finished=true`, ranking con 10 rondas y score 813. HEAD publicado: `31a9e7a`.
+Estado: aceptado.
+
 ### 2026-09-05 — qa-release — smoke final público autorizado
 Tarea: certificar Pages, Worker, CORS, contrato, flujo standard completo, streak, pistas, timeout, feedback responsive, secretos y reproducibilidad.
 Resultado: `https://api-pokemon.pages.dev` y `https://api-pokemon-api.carlosjaviermendezgutierrez.workers.dev` respondieron correctamente; health/openapi/docs HTTP 200, contrato con `guess` y sin `finish`, CORS autorizado/no autorizado correcto y D1 remota sin migraciones pendientes. La partida standard alternó GET/POST sin regresiones (`1->2` ... `9->10`, `10->10`), terminó persistida y apareció en ranking; streak terminó con fallo y no apareció en ranking; opciones y pistas no expusieron Pokemon/nombre/ID.
