@@ -182,12 +182,23 @@ function App() {
     setResult(null);
     setAnswer("");
     setError("");
+    setSecondsLeft(ROUND_TIME_LIMIT_SECONDS);
+    setImageReady(false);
+    setImageError(false);
   }
 
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand-mark">PK</div>
+        <button
+          className="brand-mark"
+          type="button"
+          aria-label="Volver al inicio"
+          title="Volver al inicio"
+          onClick={resetGame}
+        >
+          PK
+        </button>
         <div>
           <p className="eyebrow">Archivo de entrenadores</p>
           <h1>¿Quién es ese Pokemon?</h1>

@@ -133,6 +133,12 @@ Resultado: sizing global con `box-sizing`, columnas y botones contenidos, altura
 Validación: `npm run typecheck`, `npm --workspace apps/web test` (4/4 en desktop/mobile), `npm --workspace apps/web run build` y `git diff --check`, todo correcto.
 Estado: aceptado; sin backend, push ni despliegue.
 
+### 2026-09-06 — Orchestrator -> frontend/qa-release
+Tarea: convertir `PK` en botón accesible para volver al formulario de nueva partida y cubrirlo con E2E.
+Resultado: reset completo de partida, resultado, respuesta, error, temporizador y estados de imagen; prueba de navegación desde una partida activa.
+Validación: typecheck, Playwright y build ejecutados; sin push ni despliegue.
+Estado: aceptado.
+
 ### 2026-09-05 — backend — despliegue Worker autorizado
 Tarea: validar backend, migraciones D1, desplegar Worker y comprobar endpoints públicos.
 Resultado: Worker desplegado en https://api-pokemon-api.carlosjaviermendezgutierrez.workers.dev; D1 remota sin migraciones pendientes.

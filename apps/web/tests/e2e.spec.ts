@@ -103,6 +103,22 @@ test("inicia una partida standard y resuelve una ronda con dos opciones", async 
   ).toBeVisible();
 });
 
+test("vuelve al formulario de nueva partida desde PK", async ({ page }) => {
+  await page.route("**/api/**", mockApi);
+  await page.route("**/mock-*.png", mockImage);
+  await page.goto("/");
+
+  await page.getByLabel("Nombre de entrenador").fill("Ash");
+  await page.getByRole("button", { name: "Comenzar" }).click();
+  await expect(page.getByText("Ronda 1 / 10")).toBeVisible();
+
+  await page.getByRole("button", { name: "Volver al inicio" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Tu próxima captura empieza aquí." }),
+  ).toBeVisible();
+});
+
 test("prepara la segunda ronda y permite responder aunque su imagen tarde", async ({
   page,
 }) => {
