@@ -52,6 +52,12 @@ Resultado: filtro por defecto `mode=standard`, exclusión de streak e incompleta
 Validación: tests de API y typecheck del backend.
 Estado: aceptado.
 
+### 2026-09-06 — frontend delegado — redeploy y verificación pública final
+Tarea: reconstruir `apps/web` con `VITE_API_URL=https://api-pokemon-api.carlosjaviermendezgutierrez.workers.dev/api` y desplegar al proyecto Pages `api-pokemon`.
+Resultado: deployment `https://c2fa697a.api-pokemon.pages.dev`; alias público `https://api-pokemon.pages.dev` operativo; no se tocó backend ni se hizo push.
+Validación: `npm run typecheck` correcto; Playwright `12/12`; `npm run build` correcto; smoke público: inicio, partida standard, dos opciones reales, resolución con acierto, nuevas opciones en ronda 2 (`clefairy`/`dragonair`), botón `PK` al inicio y móvil sin overflow (`scrollWidth=300`, `clientWidth=300`).
+Estado: aceptado.
+
 ### 2026-09-06 — qa-release — reproducción pública standard solicitada
 Tarea: reproducir contra Worker y Pages públicos una partida `standard` completa, alternando GET/POST hasta la ronda 10, y comprobar persistencia del ranking y resumen visual.
 Resultado: Pages HTTP 200. Worker creó `gameId=f90f70b8-d75c-4a49-a34f-63fa3a3a3b5d` para `qa-public-1788730784928` (HTTP 201). Las respuestas alternadas fueron `GET 1 -> POST 2`, `GET 2 -> POST 3`, `GET 3 -> POST 4`, `GET 4 -> POST 5`, `GET 5 -> POST 6`, `GET 6 -> POST 7`, `GET 7 -> POST 8`, `GET 8 -> POST 9`, `GET 9 -> POST 10`, `GET 10 -> POST 10`; todos los GET/POST devolvieron HTTP 200.
@@ -330,3 +336,9 @@ Tarea: retirar la respuesta manual, mostrar `Es {pokemon.name}`, añadir resumen
 Resultado: solo quedan dos opciones por ronda; el placeholder inicial es `Escribe tu nombre, ej. Ash`; el resumen usa `playerName`, `score`, `round` y `streak` sin calcular score en frontend; audio sintetizado activable/desactivable tras interacción.
 Validación: `npm --workspace apps/web run typecheck`, `npm --workspace apps/web test` (12/12) y `npm --workspace apps/web run build`, todo correcto. Sin llamadas externas nuevas, push ni despliegue.
 Estado: aceptado.
+
+### 2026-09-06 — qa-release — verificación tras redeploy
+Tarea: certificar Pages y Worker públicos con flujo standard, pistas, timeout, streak, ranking, CORS, Swagger, ocultación del objetivo, responsive y PK.
+Resultado: Pages HTTP 200; Worker health/OpenAPI/Swagger HTTP 200; CORS autorizado para Pages y sin ACAO para origen externo; standard alternando GET/POST avanzó 1..10, terminó y apareció en ranking; streak terminó ante fallo; timeout real devolvió `timedOut=true`, `points=0`, ronda 2 y dos opciones; pistas devolvieron 200 sin claves de objetivo; partida activa no expuso `pokemon`, `slug`, `target`, `answer` ni `correctPokemon`. Playwright público desktop 1280x800 y móvil 390x844 confirmó dos opciones seleccionables, segunda ronda, PK al inicio y sin overflow.
+Validación: `npm run typecheck`, `npm test` (37/37), `npm run build`, `npm --workspace apps/web test` (12/12) y smoke público corregido, todo correcto. `.env.example` sin secretos, archivos sensibles ignorados y sin secretos versionados. No se modificó código, no se hizo deploy ni push.
+Estado: producción lista desde QA; el árbol conserva `AI_USAGE.md` modificado y quedan solo acciones administrativas fuera de esta delegación.
